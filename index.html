@@ -133,7 +133,7 @@ const maksAdet=t=>Math.max(0,Math.min(...KA.map((k,i)=>Math.floor(o[k]/AS[t].m[i
 const ush=k=>Object.keys(B).reduce((t,b)=>t+(B[b].u===k?B[b].baz*o.binalar[b]:0),0)*(1+arB(o.ar.eko)+.02*vip()+kb("eko")+kBonus());
 const gucler=a=>{let s=0,v=0;for(const t in AS){s+=(a[t]||0)*AS[t].s;v+=(a[t]||0)*AS[t].v}return[s,v]};
 // ---------- ENERJİ / HIZLANDIRICI / PAKET / DEPO ----------
-const ENMAX=100,ENCETE=5,ENS=[60,57,55,53,51,49,47,45,43,41,40,...Array.from({length:20},(_,i)=>40-(i+1)*.5)]; // ENS[araştırma seviyesi] = 1 enerji için saniye
+const ENMAX=100,ENCETE=5,ENS=[60,57,55,53,51,49,47,45,43,41,40,...Array.from({length:20},(_,i)=>40-(i+1)*.5)].map(x=>x*5); // 5 dk'da 1 enerji; araştırmayla en çok 2,5 dk'ya iner // ENS[araştırma seviyesi] = 1 enerji için saniye
 const HZ={h1:["1 dk",60],h5:["5 dk",300],hiz:["10 dk",600],h15:["15 dk",900],h30:["30 dk",1800],h60:["1 saat",3600]},HO=["h1","h5","hiz","h15","h30","h60"],HK=["h1","h5","h15","h30","h60"];
 const PKT=[1000,10000,50000];
 // çete seviyesine göre (1-5) düşebilecek hızlandırıcı ve paket türleri
@@ -174,8 +174,8 @@ function haritaTik(){
 }
 
 // ---------- ARAŞTIRMA SEKMESİ ----------
-const ARI={sal:["⚔️","Saldırı Eğitimi","Tüm askerlerinin saldırı gücü"],sav:["🛡️","Savunma Eğitimi","Tüm askerlerinin savunma gücü"],eko:["📈","Ekonomi","Kaynak üretim hızı"],enr:["⚡","Enerji Dolumu","Enerji dolum hızı"]};
-const arTxt=(a,l)=>a==="enr"?`1 ⚡ / ${ENS[l]} sn`:`+%${Math.round(arB(l)*100)}`;
+const ARI={sal:["⚔️","Saldırı Eğitimi","Tüm askerlerinin saldırı gücü"],sav:["🛡️","Savunma Eğitimi","Tüm askerlerinin savunma gücü"],eko:["📈","Ekonomi","Kaynak üretimi ve harita toplama hızı"],enr:["⚡","Enerji Dolumu","Enerji dolum hızı"]};
+const arTxt=(a,l)=>a==="enr"?`1 ⚡ / ${sureYaz(ENS[l])}`:a==="eko"?`üretim +%${Math.round(arB(l)*100)} • toplama hızı +%${Math.round(arB(l)*100)}`:`+%${Math.round(arB(l)*100)}`;
 function araCiz(zorla){
   const el=$("t9");if(!el||!o||el.style.display==="none")return;
   const ks=Object.keys(AR),can=ks.map(a=>{const l=o.ar[a];return l<ARMAX&&!KA.some((k,i)=>o[k]<arM(l)[i])});
@@ -544,13 +544,14 @@ function sehirCiz(){
 }
 const dugum=(x,y)=>{const h=(Math.imul(x+1,73856093)^Math.imul(y+1,19349663))>>>0;return h%9===0?{x,y,k:KA[(h>>4)%3],lv:1+(h>>8)%3}:null};
 const mes=d=>o.x==null?0:mesafe(d);
+function toplaSure(d){return Math.ceil((120*d.lv+mes(d))/(1+arB(o.ar.eko)))}
 async function kaynakPanel(k){
   const M={};try{(await getDocs(collection(db,"nokta"))).forEach(d=>M[d.id]=d.data().bitis||0)}catch(e){}
   const L=[];for(let y=0;y<HB;y++)for(let x=0;x<HB;x++){const d=dugum(x,y);if(d&&!(hDoc[x+"_"+y]||[]).length&&(M[x+"_"+y]||0)<Date.now()&&terrSahip(x,y)!=="yabanci")L.push(d)}
   L.sort((a,b)=>mes(a)-mes(b));const t=o.top,hz=t&&Date.now()>=t.bitis;
   k.insertAdjacentHTML("beforeend",'<div class="c"><b>⛏ Kaynak Noktaları</b><div class="a">Haritadaki yeşil kareler. Asker harcanmaz ama yeterli askerin olmalı (Sv1: 10, Sv2: 20, Sv3: 30). Tek seferde bir toplama.</div>'+
     (t?`<div class="r"><span style="flex:1;text-align:left">${IK[t.k]} ${n$(t.m)} (${t.x},${t.y}) <span data-cnt="${t.bitis}">${hz?"hazır!":"• "+sureYaz((t.bitis-Date.now())/1000)}</span></span><button data-ta="1" data-bt="${t.bitis}" ${hz?"":"disabled"}>Teslim al</button></div>`
-    :L.slice(0,6).map(d=>`<div class="r"><span style="flex:1;text-align:left">${IK[d.k]} Sv${d.lv} (${d.x},${d.y}) • ${n$(700*d.lv)} • ${sureYaz(120*d.lv+mes(d))}</span><button data-n="${d.x}_${d.y}">Topla</button></div>`).join(""))+'</div>');
+    :L.slice(0,6).map(d=>`<div class="r"><span style="flex:1;text-align:left">${IK[d.k]} Sv${d.lv} (${d.x},${d.y}) • ${n$(700*d.lv)} • ${sureYaz(toplaSure(d))}</span><button data-n="${d.x}_${d.y}">Topla</button></div>`).join(""))+'</div>');
   k.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{const[x,y]=b.dataset.n.split("_").map(Number);topla(x,y)});
   k.querySelectorAll("[data-ta]").forEach(b=>b.onclick=toplaAl);
 }
@@ -561,7 +562,7 @@ async function topla(x,y){
     const nr=doc(db,"nokta",x+"_"+y),dk=await getDoc(nr);
     if(dk.exists()&&(dk.data().bitis||0)>Date.now()){bilgi("Bu noktayı başkası topluyor, tükenmiş.");return haritaCiz()}
     await setDoc(nr,{bitis:Date.now()+18e5,kim:uid})}catch(e){return bilgi("Nokta alınamadı: "+e.message)}
-  const sn=120*d.lv+mes(d);o.top={k:d.k,m:Math.floor(700*d.lv*(terrSahip(x,y)==="ben"?1.5:1)),x,y,bitis:Date.now()+sn*1000};bilgi(`⛏ ${IK[d.k]} toplamaya çıkıldı (${sureYaz(sn)}).`);ciz();await kaydet();haritaCiz();
+  const sn=toplaSure(d);o.top={k:d.k,m:Math.floor(700*d.lv*(terrSahip(x,y)==="ben"?1.5:1)),x,y,bitis:Date.now()+sn*1000};bilgi(`⛏ ${IK[d.k]} toplamaya çıkıldı (${sureYaz(sn)}).`);ciz();await kaydet();haritaCiz();
 }
 async function toplaAl(){
   uret();if(!o.top||Date.now()<o.top.bitis)return;gp("topla");o[o.top.k]+=o.top.m;ist("tk");ist("tkm",o.top.m);rapor(`⛏ +${n$(o.top.m)} ${IK[o.top.k]} toplandı`,"topla",{s:"z",b:`${IK[o.top.k]} Kaynak noktası (${o.top.x},${o.top.y})`,d:[`+${n$(o.top.m)} ${IK[o.top.k]} toplandı`]});bilgi(`⛏ +${n$(o.top.m)} ${IK[o.top.k]} toplandı!`);o.top=null;ciz();await kaydet();haritaCiz();
