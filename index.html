@@ -19,6 +19,7 @@ button:disabled{background:#555;color:#999}
 .c button{width:100%;margin-top:6px}.r{display:flex;gap:6px;margin-top:8px}.r input{flex:1;width:auto}.r button{width:auto;margin:0}
 .rp{font-size:13px;text-align:left;border-bottom:1px solid #333;padding:6px 0}
 .c .yb{width:auto;margin:0 0 0 6px;padding:4px 8px}
+#dH{width:100%;padding:10px;border-radius:6px;border:0;box-sizing:border-box}.rp2{display:flex;flex-wrap:wrap;gap:6px}.dz{opacity:.5}
 </style></head><body>
 <div id="auth">
  <h1>Mafya Şehri</h1>
@@ -33,8 +34,9 @@ button:disabled{background:#555;color:#999}
   <div class="k"><i>💵</i><b id="para">0</b><small id="paraS"></small></div>
   <div class="k"><i>🔫</i><b id="silah">0</b><small id="silahS"></small></div>
   <div class="k"><i>🍞</i><b id="yiyecek">0</b><small id="yiyecekS"></small></div>
+  <div class="k"><i>⚡</i><b id="enerji">100/100</b><small id="enerjiS"></small></div>
  </div>
- <div id="sk"><button class="sk on" id="s1">🏙 Şehir</button><button class="sk" id="s2">⚔️ Ordu</button><button class="sk" id="s3">💥 Savaş</button><button class="sk" id="s4">🤝 İttifak</button><button class="sk" id="s5">🗺 Harita</button><button class="sk" id="s6">💱 Pazar</button><button class="sk" id="s7">💬 Sohbet</button></div>
+ <div id="sk"><button class="sk on" id="s1">🏙 Şehir</button><button class="sk" id="s2">⚔️ Ordu</button><button class="sk" id="s3">💥 Savaş</button><button class="sk" id="s4">🤝 İttifak</button><button class="sk" id="s5">🗺 Harita</button><button class="sk" id="s6">💱 Pazar</button><button class="sk" id="s7">💬 Sohbet</button><button class="sk" id="s8">📦 Depo</button></div>
  <div id="ana">
   <p>Patron: <b id="kullanici"></b></p><div id="bilgi"></div>
   <div id="t1"></div>
@@ -48,7 +50,7 @@ button:disabled{background:#555;color:#999}
    <div id="sef"></div><div id="sKutu"></div><div id="rakipler"></div>
    <h3>📜 Savaş Raporları</h3><div id="rap"></div>
   </div>
-  <div id="t4" style="display:none"></div><div id="t5" style="display:none"></div><div id="t6" style="display:none"></div><div id="t7" style="display:none"></div>
+  <div id="t4" style="display:none"></div><div id="t5" style="display:none"></div><div id="t6" style="display:none"></div><div id="t7" style="display:none"></div><div id="t8" style="display:none"></div>
   <br><button id="sesBtn">🔊 Ses: Açık</button> <button id="cikisBtn">Çıkış</button><br><br>
  </div>
 </div>
@@ -91,8 +93,8 @@ function ses(m){
 }
 
 // ---------- SEKMELER ----------
-const sekme=n=>{[1,2,3,4,5,6,7].forEach(i=>{$("t"+i).style.display=i===n?"block":"none";$("s"+i).classList.toggle("on",i===n)});if(n===4&&o)ittifakCiz();if(n===5&&o)haritaCiz();if(n===6&&o)pazarCiz();if(n===7&&o)genelCiz()};
-[1,2,3,4,5,6,7].forEach(i=>$("s"+i).onclick=()=>sekme(i));
+const sekme=n=>{[1,2,3,4,5,6,7,8].forEach(i=>{$("t"+i).style.display=i===n?"block":"none";$("s"+i).classList.toggle("on",i===n)});if(n===4&&o)ittifakCiz();if(n===5&&o)haritaCiz();if(n===6&&o)pazarCiz();if(n===7&&o)genelCiz();if(n===8&&o)depoCiz(true)};
+[1,2,3,4,5,6,7,8].forEach(i=>$("s"+i).onclick=()=>sekme(i));
 
 // ---------- AYARLAR ----------
 const KA=["para","silah","yiyecek"],IK={para:"💵",silah:"🔫",yiyecek:"🍞"},MAX=10,KORUMA=7200000; // yeni oyuncu 2 saat korumalı
@@ -124,6 +126,54 @@ const es=(t,n)=>Math.ceil(AS[t].t*n*Math.max(.4,1-.05*(o.binalar.kisla-1)));
 const maksAdet=t=>Math.max(0,Math.min(...KA.map((k,i)=>Math.floor(o[k]/AS[t].m[i]))));
 const ush=k=>Object.keys(B).reduce((t,b)=>t+(B[b].u===k?B[b].baz*o.binalar[b]:0),0)*(1+.05*o.ar.eko+.02*vip()+kb("eko")+kBonus());
 const gucler=a=>{let s=0,v=0;for(const t in AS){s+=(a[t]||0)*AS[t].s;v+=(a[t]||0)*AS[t].v}return[s,v]};
+// ---------- ENERJİ / HIZLANDIRICI / PAKET / DEPO ----------
+const ENMAX=100,ENCETE=5,ENS=[60,57,55,53,51,49,47,45,43,41,40]; // ENS[araştırma seviyesi] = 1 enerji için saniye
+const HZ={h1:["1 dk",60],h5:["5 dk",300],hiz:["10 dk",600],h15:["15 dk",900],h30:["30 dk",1800],h60:["1 saat",3600]},HO=["h1","h5","hiz","h15","h30","h60"],HK=["h1","h5","h15","h30","h60"];
+const PKT=[1000,10000,50000];
+// çete seviyesine göre (1-5) düşebilecek hızlandırıcı ve paket türleri
+const SPT=[[0,1],[1,2],[2,3],[3],[3,4]],PKS=[[0],[0,1],[1],[1,2],[2]];
+const rnd=n=>Math.floor(Math.random()*n);
+const enAralik=()=>ENS[Math.min(10,o.ar.enr||0)]*1000;
+function enYenile(now=Date.now()){
+  const e=o.en;if(e.v>=ENMAX){e.v=ENMAX;e.t=now;return}
+  const a=enAralik(),n=Math.floor((now-e.t)/a);
+  if(n>0){e.v=Math.min(ENMAX,e.v+n);e.t=e.v>=ENMAX?now:e.t+n*a}
+}
+function harcaEnerji(n){enYenile();if(o.en.v<n)return false;if(o.en.v>=ENMAX)o.en.t=Date.now();o.en.v-=n;return true}
+function ceteOdulVer(lv){
+  const hp=SPT[lv-1],hk=HK[hp[rnd(hp.length)]],hq=1+rnd(2);
+  const pp=PKS[lv-1],pt=pp[rnd(pp.length)],rk=KA[rnd(3)],pq=1+rnd(2),pa=rk+"_"+pt;
+  o.esya[hk]=(o.esya[hk]||0)+hq;o.pk[pa]=(o.pk[pa]||0)+pq;
+  return`⏩ ${hq}× ${HZ[hk][0]} hızlandırma + 📦 ${pq}× ${n$(PKT[pt])} ${IK[rk]} paketi`;
+}
+async function hiz(k,tip){
+  uret();const hz=HZ[tip];if(!hz||(o.esya[tip]||0)<1||!o[k])return;
+  o.esya[tip]--;o[k].bitis-=hz[1]*1000;const m=uret();
+  bilgi(m.length?"✅ "+m.join(" "):"⏩ "+hz[0]+" kısaldı.");ciz();await kaydet();
+}
+async function paketKullan(a,hepsi){
+  const[rk,pt]=a.split("_"),n=o.pk[a]||0;if(n<1||!IK[rk])return;
+  const q=hepsi?n:1,g=PKT[pt]*q;o.pk[a]-=q;o[rk]+=g;
+  bilgi("🎁 +"+n$(g)+" "+IK[rk]);ciz();await kaydet();
+}
+let depoH=null;
+function depoCiz(zorla){
+  const el=$("t8");if(!el||!o||el.style.display==="none")return;
+  const hedef=[["insaat","🔨 İnşaat"],["insaat2","🔨 2. İnşaat"],["egitim","🎯 Eğitim"],["arg","🔬 Araştırma"]].filter(x=>o[x[0]]);
+  if(!hedef.some(x=>x[0]===depoH))depoH=hedef.length?hedef[0][0]:null;
+  const key=JSON.stringify([o.esya,o.pk,o.elmas,depoH,hedef.map(x=>x[0]),o.binalar.depo]);
+  if(!zorla&&el._k===key)return;el._k=key;
+  if(!el._h){el._h=1;
+    el.onclick=e=>{const d=e.target.dataset;if(d.dh)hiz(depoH,d.dh);else if(d.dp)paketKullan(d.dp,d.hepsi==="1")};
+    el.onchange=e=>{if(e.target.id==="dH"){depoH=e.target.value;depoCiz(true)}}}
+  const toplam=HO.reduce((t,k)=>t+(o.esya[k]||0)*HZ[k][1],0);
+  const hz=HO.map(t=>{const n=o.esya[t]||0;return`<div class="r ${n?"":"dz"}"><span style="flex:1;text-align:left">⏩ ${HZ[t][0]} hızlandırma<br><small>Elinde: <b>x${n$(n)}</b></small></span><button data-dh="${t}" ${n&&depoH?"":"disabled"}>Kullan</button></div>`}).join("");
+  const pk=KA.map(rk=>`<div class="a" style="margin-top:10px"><b>${IK[rk]} ${rk==="para"?"Para":rk==="silah"?"Silah":"Yiyecek"} paketleri</b></div>`+[0,1,2].map(pt=>{const a=rk+"_"+pt,n=o.pk[a]||0;return`<div class="r ${n?"":"dz"}"><span style="flex:1;text-align:left">📦 ${n$(PKT[pt])} ${IK[rk]}<br><small>Elinde: <b>x${n$(n)}</b></small></span><button data-dp="${a}" ${n?"":"disabled"}>Kullan</button>${n>1?`<button data-dp="${a}" data-hepsi="1">Hepsi</button>`:""}</div>`}).join("")).join("");
+  el.innerHTML=`<div class="c"><b>📦 Depo</b><div class="a">Çete zaferlerinden, görevlerden ve ödüllerden gelen eşyalar burada durur. Depo binası Sv ${o.binalar.depo}: yağmadan korunan ${n$(500*o.binalar.depo)} (her kaynak).</div><div class="a">💎 Elmas: <b>${n$(o.elmas||0)}</b></div></div>`+
+  `<div class="c"><b>⏩ Hızlandırıcılar</b><div class="a">Toplam: ${sureYaz(toplam)} • İnşaat, eğitim ve araştırmada kullanılır.</div>`+
+  (hedef.length?`<select id="dH">${hedef.map(x=>`<option value="${x[0]}" ${x[0]===depoH?"selected":""}>${x[1]} işlemini hızlandır</option>`).join("")}</select>`:`<div class="a yok">Şu an hızlandırılacak bir işlem yok.</div>`)+hz+`</div>`+
+  `<div class="c"><b>🎁 Kaynak Paketleri</b>${pk}</div>`;
+}
 const maliyetHtml=(m,have)=>KA.map((k,i)=>`<span class="${have[k]<m[i]?"yok":""}">${IK[k]} ${n$(m[i])}</span>`).join(" &nbsp; ");
 
 // ---------- ÜRETİM ----------
@@ -133,7 +183,7 @@ function uret(){
   if(o.insaat&&now>=o.insaat.bitis){aralik(o.sonGuncelleme,o.insaat.bitis);o.sonGuncelleme=Math.max(o.sonGuncelleme,o.insaat.bitis);const b=o.insaat.bina;o.binalar[b]++;o.insaat=null;ms.push(B[b].ad+" yükseltmesi tamamlandı!")}
   if(o.insaat2&&now>=o.insaat2.bitis){aralik(o.sonGuncelleme,o.insaat2.bitis);o.sonGuncelleme=Math.max(o.sonGuncelleme,o.insaat2.bitis);const b=o.insaat2.bina;o.binalar[b]++;o.insaat2=null;ms.push(B[b].ad+" yükseltmesi tamamlandı!")}
   if(o.takv&&now>=o.takv.bitis){for(const t in o.takv.asker)o.askerler[t]=(o.askerler[t]||0)+o.takv.asker[t];o.takv=null;ms.push("🛡️ Takviye askerlerin geri döndü!")}
-  aralik(o.sonGuncelleme,now);o.sonGuncelleme=now;
+  aralik(o.sonGuncelleme,now);o.sonGuncelleme=now;if(o.en)enYenile(now);
   if(o.egitim&&now>=o.egitim.bitis){const e=o.egitim;o.askerler[e.asker]=(o.askerler[e.asker]||0)+e.adet;o.egitim=null;ms.push(n$(e.adet)+" "+AS[e.asker].ad+" eğitildi!")}
   if(o.arg&&now>=o.arg.bitis){o.ar[o.arg.a]++;ms.push(AR[o.arg.a]+" araştırması tamamlandı!");o.arg=null}
   o.seferler=o.seferler.filter(sf=>{
@@ -147,7 +197,7 @@ function uret(){
 async function kaydet(){
   if(!uid||!o)return;uret();
   const g=gucler(o.askerler);o.guc=g[0]+g[1];
-  try{await updateDoc(doc(db,"oyuncular",uid),{para:o.para,silah:o.silah,yiyecek:o.yiyecek,binalar:o.binalar,insaat:o.insaat,insaat2:o.insaat2||null,takv:o.takv||null,askerler:o.askerler,egitim:o.egitim,raporlar:o.raporlar,top:o.top||null,npc:o.npc||{},kl:o.kl||{},kxp:o.kxp||{},keq:o.keq||{},rallyAl:o.rallyAl||[],olusturma:o.olusturma,elmas:o.elmas||0,st:o.st||{},bas:o.bas||{},itb:o.itb||{},ip:o.ip||0,ittifak:o.ittifak,seferler:o.seferler,yardimIste:!!(o.insaat||o.insaat2||o.egitim),guc:o.guc,hastane:o.hastane,ar:o.ar,gun:o.gun,odul:o.odul,arg:o.arg,esya:o.esya,seri:o.seri,kmd:o.kmd,bossAl:o.bossAl,bossSon:o.bossSon,x:o.x,y:o.y,kakt:o.kakt,kb:{sav:kb("sav")},sonGuncelleme:o.sonGuncelleme})}catch(e){console.error(e)}
+  try{await updateDoc(doc(db,"oyuncular",uid),{para:o.para,silah:o.silah,yiyecek:o.yiyecek,binalar:o.binalar,insaat:o.insaat,insaat2:o.insaat2||null,takv:o.takv||null,askerler:o.askerler,egitim:o.egitim,raporlar:o.raporlar,top:o.top||null,npc:o.npc||{},kl:o.kl||{},kxp:o.kxp||{},keq:o.keq||{},rallyAl:o.rallyAl||[],olusturma:o.olusturma,elmas:o.elmas||0,st:o.st||{},bas:o.bas||{},itb:o.itb||{},ip:o.ip||0,ittifak:o.ittifak,seferler:o.seferler,yardimIste:!!(o.insaat||o.insaat2||o.egitim),guc:o.guc,hastane:o.hastane,ar:o.ar,gun:o.gun,odul:o.odul,arg:o.arg,esya:o.esya,pk:o.pk||{},en:o.en,seri:o.seri,kmd:o.kmd,bossAl:o.bossAl,bossSon:o.bossSon,x:o.x,y:o.y,kakt:o.kakt,kb:{sav:kb("sav")},sonGuncelleme:o.sonGuncelleme})}catch(e){console.error(e)}
 }
 const rapor=m=>{o.raporlar.unshift(m);o.raporlar=o.raporlar.slice(0,10)};
 
@@ -242,13 +292,14 @@ async function uygula(g){
 // ---------- ARAYÜZ ----------
 function kartlar(){
   $("t1").innerHTML='<div id="sehir"></div><div id="bpan"></div><div id="gk"></div><div id="odl"></div>'+Object.keys(B).map(b=>`<div class="c"><div class="u"><span>${B[b].ik}</span><b>${B[b].ad}</b><span class="sv" id="s_${b}"></span></div><div class="a" id="a_${b}"></div><div class="a" id="m_${b}"></div><div class="d" id="d_${b}"></div><div class="cb" id="c_${b}" style="display:none"><div></div></div><button id="b_${b}">Yükselt</button></div>`).join("");
-  Object.keys(B).forEach(b=>$("b_"+b).onclick=()=>yukselt(b));$("t1").onclick=e=>{const g=e.target.dataset.g;if(g)gorevAl(g);const kg=e.target.dataset.kg;if(kg)ozel(kg);const sb=e.target.closest("[data-sb]");if(sb){secB=sb.dataset.sb;sehirCiz();bpanCiz();$("bpan").scrollIntoView({behavior:"smooth",block:"nearest"})}};$("hs").onclick=e=>{const kg=e.target.dataset.kg;if(kg){komGel(kg);return}if(e.target.id==="hsBtn")tedavi();else if(e.target.dataset.a)arGel(e.target.dataset.a);else if(e.target.dataset.h)hiz(e.target.dataset.h);else if(e.target.id==="kmBtn")komCagir();else if(e.target.dataset.k)komSec(e.target.dataset.k)};
+  Object.keys(B).forEach(b=>$("b_"+b).onclick=()=>yukselt(b));$("t1").onclick=e=>{const g=e.target.dataset.g;if(g)gorevAl(g);const kg=e.target.dataset.kg;if(kg)ozel(kg);const sb=e.target.closest("[data-sb]");if(sb){secB=sb.dataset.sb;sehirCiz();bpanCiz();$("bpan").scrollIntoView({behavior:"smooth",block:"nearest"})}};$("hs").onclick=e=>{const kg=e.target.dataset.kg;if(kg){komGel(kg);return}if(e.target.id==="hsBtn")tedavi();else if(e.target.dataset.a)arGel(e.target.dataset.a);else if(e.target.dataset.h)hiz(...e.target.dataset.h.split("|"));else if(e.target.id==="kmBtn")komCagir();else if(e.target.dataset.k)komSec(e.target.dataset.k)};
   $("askerler").innerHTML=Object.keys(AS).map(t=>`<div class="c"><div class="u"><span>${AS[t].ik}</span><b>${AS[t].ad}</b><span class="sv" id="e_${t}"></span></div><div class="a">⚔️ ${AS[t].s} &nbsp; 🛡️ ${AS[t].v} &nbsp; • Karşısında güçlü: ${AS[CT[t]].ik} ${AS[CT[t]].ad}</div><div class="a" id="em_${t}"></div><div class="d" id="ed_${t}"></div><div class="r"><input type="number" id="n_${t}" value="1" min="1" inputmode="numeric"><button id="mx_${t}">Maks</button><button id="eb_${t}">Eğit</button></div></div>`).join("");
   Object.keys(AS).forEach(t=>{$("eb_"+t).onclick=()=>egit(t);$("mx_"+t).onclick=()=>$("n_"+t).value=Math.max(1,maksAdet(t))});
 }
 function ciz(){
   sehirCiz();odulCiz();KA.forEach(k=>{$(k).textContent=n$(o[k]);$(k+"S").textContent="+"+n$(ush(k))+"/sa"});
   const now=Date.now();
+  {const E=o.en;$("enerji").textContent=E.v+"/"+ENMAX;$("enerjiS").textContent=E.v>=ENMAX?"Dolu":"+1 • "+Math.max(0,Math.ceil((E.t+enAralik()-now)/1000))+" sn"}
   for(const b in B){
     const l=o.binalar[b],X=B[b],mx=l>=MAX;$("s_"+b).textContent="Sv "+l;
     $("a_"+b).textContent=X.u?`${IK[X.u]} ${n$(X.baz*l)}${mx?"":" → "+n$(X.baz*(l+1))} /saat`
@@ -270,7 +321,7 @@ function ciz(){
   if(o.egitim){const e=o.egitim,kalan=(e.bitis-now)/1000,top=(e.bitis-e.baslangic)/1000;$("egK").style.display="block";$("egY").textContent="🎯 Eğitimde: "+n$(e.adet)+" "+AS[e.asker].ad+" — "+sureYaz(kalan);$("egC").style.width=Math.min(100,100*(1-kalan/top))+"%"}
   else $("egK").style.display="none";
   $("sef").innerHTML=o.seferler.map(sf=>`<div class="c"><b>${sf.durum==="gidiyor"?"➡️ "+esc(sf.hedefAd)+" şehrine yürüyor":"⬅️ Şehre dönüyor"}</b><div class="d">${sureYaz(((sf.durum==="gidiyor"?sf.varis:sf.donus)-now)/1000)}</div><div class="a">${Object.keys(sf.asker).filter(t=>sf.asker[t]>0).map(t=>AS[t].ik+" "+n$(sf.asker[t])).join(" ")}</div></div>`).join("");
-  $("rap").innerHTML=o.raporlar.length?o.raporlar.map(r=>`<div class="rp">${r}</div>`).join(""):'<div class="rp">Henüz savaş yok.</div>';gorevCiz();hsCiz();bpanCiz();
+  $("rap").innerHTML=o.raporlar.length?o.raporlar.map(r=>`<div class="rp">${r}</div>`).join(""):'<div class="rp">Henüz savaş yok.</div>';gorevCiz();hsCiz();bpanCiz();depoCiz();
 }
 // ---------- İTTİFAK ----------
 let sohbetUnsub=null;const ITT_MALIYET=500,ittR=id=>doc(db,"ittifaklar",id),esc=t=>String(t).replace(/[&<>"']/g,"");
@@ -379,7 +430,7 @@ async function ittifakAyril(){
 }
 // ---------- GÖREV / HASTANE / AR-GE / CASUS / SAVAŞ ÖDÜLÜ ----------
 const GR={giris:[1,"Günlük giriş ödülü",[500,200,200]],yuk:[1,"Bir bina yükselt",[300,100,100]],egit:[10,"10 asker eğit",[200,50,50]],sal:[1,"Bir saldırı yap",[300,100,100]]};
-const AR={sal:"⚔️ Saldırı eğitimi",sav:"🛡️ Savunma eğitimi",eko:"📈 Ekonomi"},arM=l=>[400,150,150].map(x=>Math.floor(x*Math.pow(1.7,l))),hsm=t=>AS[t].m.map(x=>Math.floor(x/2)),RK={},arS=l=>Math.ceil(60*Math.pow(1.8,l));
+const AR={sal:"⚔️ Saldırı eğitimi",sav:"🛡️ Savunma eğitimi",eko:"📈 Ekonomi",enr:"⚡ Enerji dolumu"},arM=l=>[400,150,150].map(x=>Math.floor(x*Math.pow(1.7,l))),hsm=t=>AS[t].m.map(x=>Math.floor(x/2)),RK={},arS=l=>Math.ceil(60*Math.pow(1.8,l));
 const vip=()=>Math.min(5,Math.floor((o.seri||0)/3)),gunK=()=>{const t=new Date(Date.now()+10800000).toISOString().slice(0,10);if(o.gun.t!==t){const dun=new Date(Date.now()+10800000-864e5).toISOString().slice(0,10);o.seri=o.gun.t===dun?(o.seri||0)+1:1;o.gun={t,g:{giris:1},al:{}}}};
 const gp=(k,n=1)=>{gunK();o.st=o.st||{};o.st[k]=(o.st[k]||0)+n;o.gun.g[k]=(o.gun.g[k]||0)+n};
 function gorevCiz(){
@@ -389,7 +440,7 @@ function gorevCiz(){
 async function gorevAl(k){gunK();const[h,,r]=GR[k];if(o.gun.al[k]||(o.gun.g[k]||0)<h)return;o.gun.al[k]=1;KA.forEach((x,i)=>o[x]+=r[i]);o.esya.hiz++;o.elmas=(o.elmas||0)+5;bilgi("🎁 Görev ödülü alındı! +1 ⏩ +5 💎");ciz();await kaydet()}
 function hsCiz(){
   const hs=Object.keys(AS).filter(t=>o.hastane[t]>0);
-  $("hs").innerHTML=hizHtml()+komHtml()+komGelHtml()+kalkanHtml()+magazaHtml()+terfiHtml()+'<div class="c"><b>🏥 Hastane</b><div class="a">'+(hs.length?hs.map(t=>AS[t].ik+" "+n$(o.hastane[t])).join(" &nbsp; "):"Yaralı yok")+'</div><div class="a">Savaşta kaybedilen askerlerin yarısı yaralanır; eğitim maliyetinin yarısına tedavi edilir.</div><button id="hsBtn" '+(hs.length?"":"disabled")+'>Tedavi et</button></div><div class="c"><b>🔬 Araştırma</b>'+Object.keys(AR).map(a=>{const l=o.ar[a];return`<div class="r"><span style="flex:1;text-align:left">${AR[a]} Sv ${l}/10 (+%${5*l})<br><small>${l>=10?"Maksimum":maliyetHtml(arM(l),o)+" &nbsp; ⏱ "+sureYaz(arS(l))}${o.arg&&o.arg.a===a?"<br>🔬 Araştırılıyor: "+sureYaz((o.arg.bitis-Date.now())/1000):""}</small></span><button data-a="${a}" ${l>=10||o.arg?"disabled":""}>Geliştir</button></div>`}).join("")+"</div>";
+  $("hs").innerHTML=hizHtml()+komHtml()+komGelHtml()+kalkanHtml()+magazaHtml()+terfiHtml()+'<div class="c"><b>🏥 Hastane</b><div class="a">'+(hs.length?hs.map(t=>AS[t].ik+" "+n$(o.hastane[t])).join(" &nbsp; "):"Yaralı yok")+'</div><div class="a">Savaşta kaybedilen askerlerin yarısı yaralanır; eğitim maliyetinin yarısına tedavi edilir.</div><button id="hsBtn" '+(hs.length?"":"disabled")+'>Tedavi et</button></div><div class="c"><b>🔬 Araştırma</b>'+Object.keys(AR).map(a=>{const l=o.ar[a];return`<div class="r"><span style="flex:1;text-align:left">${AR[a]} Sv ${l}/10 (${a==="enr"?"1⚡ / "+ENS[l]+" sn"+(l<10?" → "+ENS[l+1]+" sn":""):"+%"+5*l})<br><small>${l>=10?"Maksimum":maliyetHtml(arM(l),o)+" &nbsp; ⏱ "+sureYaz(arS(l))}${o.arg&&o.arg.a===a?"<br>🔬 Araştırılıyor: "+sureYaz((o.arg.bitis-Date.now())/1000):""}</small></span><button data-a="${a}" ${l>=10||o.arg?"disabled":""}>Geliştir</button></div>`}).join("")+"</div>";
 }
 const HB=16,mesafe=v=>v.x==null?0:(Math.abs(v.x-o.x)+Math.abs(v.y-o.y))*3;let hDoc={};
 async function haritaCiz(){
@@ -458,18 +509,19 @@ const cete=(x,y)=>{if(dugum(x,y))return null;const h=(Math.imul(x+7,2654435761)^
 function cetePanel(k){
   const L=[];for(let y=0;y<HB;y++)for(let x=0;x<HB;x++){const c=cete(x,y);if(c&&!(hDoc[x+"_"+y]||[]).length)L.push(c)}
   L.sort((a,b)=>mes(a)-mes(b));const now=Date.now(),A=gucler(o.askerler)[0]*(1+.05*o.ar.sal+kb("sal"));
-  k.insertAdjacentHTML("beforeend",`<div class="c"><b>🕴️ Çeteler</b><div class="a">Haritadaki mor kareler. Evdeki tüm askerlerinle saldırırsın. Kazanırsan ödül + 30 dk bekleme. Senin saldırın: ⚔️ ${n$(A)}</div>`+
-    L.slice(0,6).map(c=>{const D=400*c.lv*c.lv,cd=(o.npc[c.x+"_"+c.y]||0)-now;return`<div class="r"><span style="flex:1;text-align:left">🕴️ Sv${c.lv} (${c.x},${c.y}) • 🛡️ ${n$(D)}<br><small>${KA.map((x,i)=>IK[x]+n$([900,400,400][i]*c.lv)).join(" ")}${c.lv>=3?" ⏩"+(c.lv-2):""}</small></span><button data-c2="${c.x}_${c.y}" ${cd>0?"disabled":""}>${cd>0?sureYaz(cd/1000):"Saldır"}</button></div>`}).join("")+"</div>");
+  k.insertAdjacentHTML("beforeend",`<div class="c"><b>🕴️ Çeteler</b><div class="a">Haritadaki mor kareler. Evdeki tüm askerlerinle saldırırsın. Her saldırı ⚡${ENCETE} enerji harcar (şu an ⚡${o.en.v}). Kazanırsan ödül + 30 dk bekleme; kaybedersen ödül yok. Senin saldırın: ⚔️ ${n$(A)}</div>`+
+    L.slice(0,6).map(c=>{const D=400*c.lv*c.lv,cd=(o.npc[c.x+"_"+c.y]||0)-now;return`<div class="r"><span style="flex:1;text-align:left">🕴️ Sv${c.lv} (${c.x},${c.y}) • 🛡️ ${n$(D)}<br><small>${KA.map((x,i)=>IK[x]+n$([900,400,400][i]*c.lv)).join(" ")}<br>+ ⏩ hızlandırma ve 📦 kaynak paketi (1-2 adet)</small></span><button data-c2="${c.x}_${c.y}" ${cd>0?"disabled":""}>${cd>0?sureYaz(cd/1000):"Saldır ⚡"+ENCETE}</button></div>`}).join("")+"</div>");
   k.querySelectorAll("[data-c2]").forEach(b=>b.onclick=()=>{const[x,y]=b.dataset.c2.split("_").map(Number);ceteSaldir(x,y)});
 }
 async function ceteSaldir(x,y){
   uret();const c=cete(x,y);if(!c)return;const key=x+"_"+y;if((o.npc[key]||0)>Date.now())return bilgi("Bu çete toparlanıyor.");
   const A=gucler(o.askerler)[0]*(1+.05*o.ar.sal+kb("sal")),D=400*c.lv*c.lv;if(A<1)return bilgi("Saldırmak için askerin olmalı.");
+  if(!harcaEnerji(ENCETE))return bilgi("⚡ Yeterli enerji yok! Çete saldırısı için "+ENCETE+" enerji gerekli.");
   const kazan=A>D,k=kazan?Math.min(.4,.25*D/A):.4;
   for(const t in AS){const l=Math.ceil((o.askerler[t]||0)*k);o.askerler[t]-=l;o.hastane[t]=(o.hastane[t]||0)+Math.floor(l/2)}
   gp("sal");let m;
-  if(kazan){KA.forEach((x2,i)=>o[x2]+=[900,400,400][i]*c.lv);if(c.lv>=3)o.esya.hiz+=c.lv-2;o.npc[key]=Date.now()+18e5;
-    m=`🕴️ Sv${c.lv} çeteyi yendin! Ödül: ${KA.map((x2,i)=>IK[x2]+n$([900,400,400][i]*c.lv)).join(" ")}${c.lv>=3?" ⏩"+(c.lv-2):""} • Kaybın: %${Math.round(k*100)}`}
+  if(kazan){KA.forEach((x2,i)=>o[x2]+=[900,400,400][i]*c.lv);o.npc[key]=Date.now()+18e5;const od=ceteOdulVer(c.lv);
+    m=`🕴️ Sv${c.lv} çeteyi yendin! Ödül: ${KA.map((x2,i)=>IK[x2]+n$([900,400,400][i]*c.lv)).join(" ")} + ${od} • Kaybın: %${Math.round(k*100)}`}
   else m=`💀 Sv${c.lv} çeteye yenildin. Askerlerinin %${Math.round(k*100)}'ini kaybettin.`;
   if(kazan){kxpVer(60);o.elmas=(o.elmas||0)+c.lv*3}rapor(m);bilgi(m);ciz();await kaydet();haritaCiz();
 }
@@ -689,15 +741,15 @@ function etkHtml(){const e=etkBugun();return`<div class="c"><b>${e.ik} Bugünün
 let secB=null;
 function bpanCiz(){
   const el=$("bpan");if(!el)return;
-  if(!el._h){el._h=1;el.onclick=async e=>{const d=e.target.dataset;if(d.bu)await yukselt(d.bu);else if(d.bh)await hiz(d.bh);else if(d.bk){secB=null;sehirCiz();bpanCiz()}}}
+  if(!el._h){el._h=1;el.onclick=async e=>{const d=e.target.dataset;if(d.bu)await yukselt(d.bu);else if(d.bh)await hiz(...d.bh.split("|"));else if(d.bk){secB=null;sehirCiz();bpanCiz()}}}
   if(!secB){if(el._k!==""){el._k="";el.innerHTML=""}return}
   const b=secB,l=o.binalar[b],X=B[b],mx=l>=MAX,m=mx?null:mal(b,l),can=!mx&&!KA.some((k,i)=>o[k]<m[i]),ik=o.binalar.karargah>=5;
   const q=[["insaat",o.insaat],["insaat2",o.insaat2]].find(x=>x[1]&&x[1].bina===b),dolu=!!o.insaat&&(!ik||!!o.insaat2);
-  const key=[b,l,can,!!q,q&&q[0],dolu,o.esya.hiz].join();
+  const key=[b,l,can,!!q,q&&q[0],dolu,HO.map(t=>o.esya[t]||0).join("-")].join();
   if(el._k!==key){el._k=key;
     el.innerHTML=`<div class="c" style="border:1px solid #e0b04a"><div class="u"><span>${X.ik}</span><b>${X.ad}</b><span class="sv">Sv ${l}</span></div><div class="a">${$("a_"+b).textContent}</div>`+
     (mx?'<div class="a">Maksimum seviye.</div>':`<div class="a">${maliyetHtml(m,o)} &nbsp; ⏱ ${sureYaz(sure(l))}</div>`)+
-    (q?`<button disabled>🔨 Yükseltiliyor: <span id="bpT"></span></button>${o.esya.hiz>0?`<button data-bh="${q[0]}">⏩ Hızlandır -10 dk (x${o.esya.hiz})</button>`:""}`
+    (q?`<button disabled>🔨 Yükseltiliyor: <span id="bpT"></span></button>${HO.some(t=>o.esya[t]>0)?`<div class="r" style="flex-wrap:wrap">${HO.filter(t=>o.esya[t]>0).map(t=>`<button data-bh="${q[0]}|${t}">⏩ −${HZ[t][0]} (x${o.esya[t]})</button>`).join("")}</div>`:""}`
       :mx?"":`<button data-bu="${b}" ${can&&!dolu?"":"disabled"}>${dolu?"İnşaat kuyruğu dolu":can?"⬆️ Yükselt → Sv "+(l+1):"Kaynak yetersiz"}</button>`)+
     `<div class="d" id="bpM"></div><button data-bk="1" style="background:#444;color:#ccc">Kapat</button></div>`}
   const sp=$("bpT");if(sp&&q)sp.textContent=sureYaz((q[1].bitis-Date.now())/1000);
@@ -772,8 +824,7 @@ kb=b=>{const k=o.kakt;return etk(b)+.01*(o.ittifak?(o.itb||{})[b]||0:0)+(k&&KM[k
 const komHtml=()=>`<div class="c"><b>🕴️ Komutanlar</b><div class="a">Komutan çağır: rastgele biri gelir; aynısı tekrar çıkarsa seviyesi artar (en çok 10). Aktif komutan seviye başına +%3 bonus verir.</div>${Object.keys(KM).map(k=>{const l=o.kmd[k]||0,X=KM[k];return l?`<div class="r"><span style="flex:1;text-align:left">${X.ik} ${X.ad} Sv ${l}<br><small>${X.t} +%${3*l}</small></span><button data-k="${k}" ${o.kakt===k?"disabled":""}>${o.kakt===k?"✅ Aktif":"Seç"}</button></div>`:""}).join("")||'<div class="a">Henüz komutanın yok.</div>'}<div class="a">${maliyetHtml(KMM,o)}</div><button id="kmBtn" ${KA.some((x,i)=>o[x]<KMM[i])?"disabled":""}>Komutan çağır</button></div>`;
 async function komCagir(){uret();if(KA.some((x,i)=>o[x]<KMM[i]))return bilgi("Yeterli kaynak yok.");KA.forEach((x,i)=>o[x]-=KMM[i]);const ks=Object.keys(KM),k=ks[Math.floor(Math.random()*ks.length)];o.kmd[k]=Math.min(10,(o.kmd[k]||0)+1);if(!o.kakt)o.kakt=k;bilgi(`🕴️ ${KM[k].ad} geldi! Sv ${o.kmd[k]}`);ciz();await kaydet()}
 async function komSec(k){if(!o.kmd[k])return;o.kakt=k;bilgi(KM[k].ad+" aktif.");ciz();await kaydet()}
-const hizHtml=()=>{const T=[["insaat","🔨 İnşaat"],["insaat2","🔨 2. İnşaat"],["egitim","🎯 Eğitim"],["arg","🔬 Araştırma"]].filter(x=>o[x[0]]);return`<div class="c"><b>🎒 Hızlandırma</b> ⏩ x${o.esya.hiz}<div class="a">Görev ve savaş ödüllerinden kazanılır; her biri bir işlemi 10 dk kısaltır.</div>${T.map(x=>`<button data-h="${x[0]}" ${o.esya.hiz<1?"disabled":""}>${x[1]} -10 dk</button>`).join("")}</div>`};
-async function hiz(k){uret();if(o.esya.hiz<1||!o[k])return;o.esya.hiz--;o[k].bitis-=600000;bilgi("⏩ 10 dk kısaldı.");ciz();await kaydet()}
+const hizHtml=()=>{const T=[["insaat","🔨 İnşaat"],["insaat2","🔨 2. İnşaat"],["egitim","🎯 Eğitim"],["arg","🔬 Araştırma"]].filter(x=>o[x[0]]),var_=HO.filter(t=>(o.esya[t]||0)>0);return`<div class="c"><b>🎒 Hızlandırma</b><div class="a">${HO.map(t=>HZ[t][0]+" x"+n$(o.esya[t]||0)).join(" • ")}<br>Çete zaferlerinden ve görevlerden kazanılır. Tümü 📦 Depo sekmesinde de görünür.</div>${T.length?(var_.length?T.map(x=>`<div class="a">${x[1]}</div><div class="r" style="flex-wrap:wrap">${var_.map(t=>`<button data-h="${x[0]}|${t}">−${HZ[t][0]} (x${o.esya[t]})</button>`).join("")}</div>`).join(""):'<div class="a">Hızlandırıcın yok.</div>'):'<div class="a">Hızlandırılacak işlem yok.</div>'}</div>`};
 async function tedavi(){uret();let n=0;for(const t in AS){const c=hsm(t),w=o.hastane[t]||0,k=Math.min(w,...KA.map((x,i)=>Math.floor(o[x]/c[i])));if(k>0){KA.forEach((x,i)=>o[x]-=c[i]*k);o.hastane[t]-=k;o.askerler[t]=(o.askerler[t]||0)+k;n+=k}}bilgi(n?`🏥 ${n$(n)} asker tedavi edildi.`:"Tedavi için yeterli kaynak yok.");ciz();await kaydet()}
 async function arGel(a){uret();const l=o.ar[a],m=arM(l);if(l>=10)return;if(o.arg)return bilgi("Zaten bir araştırma sürüyor.");if(KA.some((k,i)=>o[k]<m[i]))return bilgi("Yeterli kaynak yok.");KA.forEach((k,i)=>o[k]-=m[i]);const n=Date.now();o.arg={a,baslangic:n,bitis:n+arS(l)*1000};bilgi(AR[a]+" araştırılıyor...");ciz();await kaydet()}
 function casus(id){uret();const v=RK[id];if(!v)return;if(o.para<100)return bilgi("Casus için 💵 100 gerekli.");o.para-=100;bilgi(`🕵️ ${esc(v.kullaniciAdi)}: ${Object.keys(AS).map(t=>AS[t].ik+n$((v.askerler||{})[t]||0)).join(" ")} • ${KA.map(k=>IK[k]+n$(v[k]||0)).join(" ")}`);ciz();kaydet()}
@@ -800,7 +851,7 @@ async function baslat(u){
   o.binalar=Object.assign({kumarhane:1,silahatolyesi:1,restoran:1,karargah:1,kisla:1,depo:1,duvar:1,hastane:1},o.binalar||{});
   o.askerler=Object.assign({serseri:0,tetikci:0,nisanci:0,muhafiz:0,elitt:0,komando:0},o.askerler||{});
   if(o.insaat===undefined)o.insaat=null;if(o.insaat2===undefined)o.insaat2=null;if(o.egitim===undefined)o.egitim=null;
-  o.raporlar=o.raporlar||[];o.ittifak=o.ittifak||null;o.seferler=o.seferler||[];o.hastane=o.hastane||{};o.ar=Object.assign({sal:0,sav:0,eko:0},o.ar||{});o.gun=o.gun||{t:"",g:{},al:{}};o.odul=o.odul||[];o.npc=o.npc||{};o.kl=o.kl||{};o.kxp=o.kxp||{};o.keq=o.keq||{};o.rallyAl=o.rallyAl||[];o.arg=o.arg||null;o.esya=Object.assign({hiz:0},o.esya||{});o.seri=o.seri||0;o.kmd=o.kmd||{};o.kakt=o.kakt||null;o.bossAl=o.bossAl||[];o.bossSon=o.bossSon||0;if(o.x==null){o.x=Math.floor(Math.random()*HB);o.y=Math.floor(Math.random()*HB)}
+  o.raporlar=o.raporlar||[];o.ittifak=o.ittifak||null;o.seferler=o.seferler||[];o.hastane=o.hastane||{};o.ar=Object.assign({sal:0,sav:0,eko:0,enr:0},o.ar||{});o.gun=o.gun||{t:"",g:{},al:{}};o.odul=o.odul||[];o.npc=o.npc||{};o.kl=o.kl||{};o.kxp=o.kxp||{};o.keq=o.keq||{};o.rallyAl=o.rallyAl||[];o.arg=o.arg||null;o.esya=Object.assign({hiz:0,h1:0,h5:0,h15:0,h30:0,h60:0},o.esya||{});o.pk=o.pk||{};if(!o.en||typeof o.en.v!=="number")o.en={v:ENMAX,t:Date.now()};o.seri=o.seri||0;o.kmd=o.kmd||{};o.kakt=o.kakt||null;o.bossAl=o.bossAl||[];o.bossSon=o.bossSon||0;if(o.x==null){o.x=Math.floor(Math.random()*HB);o.y=Math.floor(Math.random()*HB)}
   const m=uret();if(m.length)bilgi("✅ "+m.join(" "));
   $("kullanici").textContent=o.kullaniciAdi||u.email.split("@")[0];
   kartlar();ciz();if(o.ittifak)getDoc(ittR(o.ittifak)).then(x=>{const q=x.data()||{};o.itb=q.tek||{};o.ikale=q.kale||null}).catch(()=>{});await kaydet();
