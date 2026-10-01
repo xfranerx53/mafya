@@ -18,6 +18,7 @@ button:disabled{background:#555;color:#999}
 .cb{height:6px;background:#333;border-radius:3px;overflow:hidden;margin-top:4px}.cb div{height:100%;background:#e0b04a;width:0}
 .c button{width:100%;margin-top:6px}.r{display:flex;gap:6px;margin-top:8px}.r input{flex:1;width:auto}.r button{width:auto;margin:0}
 .rp{font-size:13px;text-align:left;border-bottom:1px solid #333;padding:6px 0}
+.c .yb{width:auto;margin:0 0 0 6px;padding:4px 8px}
 </style></head><body>
 <div id="auth">
  <h1>Mafya Şehri</h1>
@@ -54,7 +55,7 @@ button:disabled{background:#555;color:#999}
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,setPersistence,browserLocalPersistence,browserSessionPersistence}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import{getFirestore,doc,getDoc,setDoc,updateDoc,collection,getDocs,query,limit,arrayUnion,arrayRemove,onSnapshot,deleteField,orderBy,addDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import{getFirestore,doc,getDoc,setDoc,updateDoc,collection,getDocs,query,limit,arrayUnion,arrayRemove,onSnapshot,deleteField,orderBy,addDoc,increment,where}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app=initializeApp({apiKey:"AIzaSyCKOWtGDm2-RwFOGT2UqaHUUYkB_zvxZI0",authDomain:"mafya-a6889.firebaseapp.com",projectId:"mafya-a6889",storageBucket:"mafya-a6889.firebasestorage.app",messagingSenderId:"717053621251",appId:"1:717053621251:web:2f2d5c9f80685f4f020a36"});
 const auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id),LS=localStorage;
@@ -130,7 +131,7 @@ function uret(){
 async function kaydet(){
   if(!uid||!o)return;uret();
   const g=gucler(o.askerler);o.guc=g[0]+g[1];
-  try{await updateDoc(doc(db,"oyuncular",uid),{para:o.para,silah:o.silah,yiyecek:o.yiyecek,binalar:o.binalar,insaat:o.insaat,askerler:o.askerler,egitim:o.egitim,raporlar:o.raporlar,ittifak:o.ittifak,seferler:o.seferler,guc:o.guc,sonGuncelleme:o.sonGuncelleme})}catch(e){console.error(e)}
+  try{await updateDoc(doc(db,"oyuncular",uid),{para:o.para,silah:o.silah,yiyecek:o.yiyecek,binalar:o.binalar,insaat:o.insaat,askerler:o.askerler,egitim:o.egitim,raporlar:o.raporlar,ittifak:o.ittifak,seferler:o.seferler,yardimIste:!!(o.insaat||o.egitim),guc:o.guc,sonGuncelleme:o.sonGuncelleme})}catch(e){console.error(e)}
 }
 const rapor=m=>{o.raporlar.unshift(m);o.raporlar=o.raporlar.slice(0,10)};
 
@@ -193,12 +194,14 @@ async function savas(sf){
   else{
     const A=gucler(sf.asker)[0],D=100+gucler(v.askerler||{})[1],kazan=A>D;
     const aK=kazan?Math.min(.6,.4*D/A):.7,dK=kazan?.6:Math.min(.4,.3*A/D);
-    KA.forEach(k=>y[k]=kazan?Math.floor((v[k]||0)*.25):0);
+    const W=kazan?await savasKontrol(v):null;
+    KA.forEach(k=>y[k]=kazan?Math.floor((v[k]||0)*(W?.35:.25)):0);
     try{await updateDoc(doc(db,"oyuncular",sf.hedef),{gelen:arrayUnion({id:sf.id,kim:o.kullaniciAdi,kazandi:kazan,dKay:dK,yagma:y})})}
     catch(e){m="Saldırı iletilemedi: "+e.message;y={para:0,silah:0,yiyecek:0}}
     if(!m){
       for(const t in hay)hay[t]=Math.floor(hay[t]*(1-aK));
-      m=kazan?`🏆 ${esc(v.kullaniciAdi)} şehrini yendin! Yağma: ${KA.map(k=>IK[k]+n$(y[k])).join(" ")} • Kaybın: %${Math.round(aK*100)}`
+      if(W)updateDoc(ittR(o.ittifak),{["puan.w"+W.savasBitis]:increment(1)}).catch(()=>{});
+      m=kazan?`🏆 ${esc(v.kullaniciAdi)} şehrini yendin! Yağma: ${KA.map(k=>IK[k]+n$(y[k])).join(" ")} • Kaybın: %${Math.round(aK*100)}${W?" • ⚔️ İttifak savaşı +1 puan, yağma %35!":""}`
              :`💀 ${esc(v.kullaniciAdi)} şehrine yenildin. Askerlerinin %${Math.round(aK*100)}'ini kaybettin.`;
     }
   }
@@ -261,19 +264,68 @@ async function ittifakCiz(){
     if(o.ittifak){
       const s=await getDoc(ittR(o.ittifak));
       if(!s.exists()||!(s.data().uyeler||{})[uid]){o.ittifak=null;await kaydet();return ittifakCiz()}
-      const d=s.data(),u=d.uyeler;
-      k.innerHTML=`<div class="c"><div class="u"><span>🤝</span><b>${esc(d.ad)}</b><span class="sv">${Object.keys(u).length} üye</span></div><div class="a">${Object.keys(u).map(i=>(i===d.lider?"👑 ":"🕴️ ")+esc(u[i])).join("<br>")}</div><div class="a">Müttefiklerine saldıramazsın.</div><button id="ayrBtn">Ayrıl</button></div>`;
+      const d=s.data(),u=d.uyeler,yi={};
+      await Promise.all(Object.keys(u).map(async i=>{try{yi[i]=(await getDoc(doc(db,"oyuncular",i))).data().yardimIste}catch(e){}}));
+      k.innerHTML=`<div class="c"><div class="u"><span>🤝</span><b>${esc(d.ad)}</b><span class="sv">${Object.keys(u).length} üye</span></div><div class="a">${Object.keys(u).map(i=>`<div>${i===d.lider?"👑":"🕴️"} ${esc(u[i])}${i!==uid&&yi[i]?` <button class="yb" data-y="${i}">🙋 Yardım et</button>`:""}</div>`).join("")}</div><div class="a">Müttefiklerine saldıramazsın.</div><button id="ayrBtn">Ayrıl</button></div>`;
       $("ayrBtn").onclick=ittifakAyril;
+      k.querySelectorAll("[data-y]").forEach(b=>b.onclick=()=>{b.disabled=true;yardimEt(b.dataset.y)});
+      await savasKutu(k,d);
       k.insertAdjacentHTML("beforeend",'<div class="c"><b>💬 Sohbet</b><div class="r"><input type="text" id="sohM" placeholder="Mesaj yaz..." maxlength="200"><button id="sohBtn">Gönder</button></div><div id="sohbet" style="max-height:260px;overflow:auto"></div></div>');
       $("sohBtn").onclick=sohbetGonder;sohbetBaslat(o.ittifak);
     }else{
       const s=await getDocs(query(collection(db,"ittifaklar"),limit(20)));let h="";
       s.forEach(x=>{const d=x.data(),n=Object.keys(d.uyeler||{}).length;if(n)h+=`<div class="c"><div class="u"><span>🤝</span><b>${esc(d.ad)}</b><span class="sv">${n} üye</span></div><button data-id="${x.id}">Katıl</button></div>`});
-      k.innerHTML=`<div class="c"><b>Yeni ittifak kur</b> (💵 ${ITT_MALIYET})<div class="r"><input type="text" id="ittAd" placeholder="Ad (3-12 harf/rakam)" autocapitalize="none"><button id="kurBtn">Kur</button></div></div><h3>Açık ittifaklar</h3>${h||'<div class="c">Henüz ittifak yok.</div>'}`;
+      k.innerHTML=`<div class="c"><b>Yeni ittifak kur</b> (💵 ${ITT_MALIYET})<div class="r"><input type="text" id="ittAd" placeholder="Ad (3-16 karakter, istediğin gibi)" autocapitalize="none"><button id="kurBtn">Kur</button></div></div><h3>Açık ittifaklar</h3>${h||'<div class="c">Henüz ittifak yok.</div>'}`;
       $("kurBtn").onclick=ittifakKur;
       k.querySelectorAll("button[data-id]").forEach(b=>b.onclick=()=>ittifakKatil(b.dataset.id));
     }
   }catch(e){k.innerHTML='<div class="c">Hata: '+e.message+'</div>'}
+}
+// ---------- YARDIMLAŞMA & İTTİFAK SAVAŞI ----------
+async function yardimEt(id){
+  try{await updateDoc(doc(db,"oyuncular",id),{yardim:arrayUnion({id:uid+"_"+Date.now(),kim:o.kullaniciAdi})});bilgi("🙋 Yardım gönderildi!")}
+  catch(e){bilgi("Yardım gönderilemedi: "+e.message)}
+}
+async function yardimUygula(y){ // gelen yardım: işlem başına en fazla 5 kez, her biri -1 dk
+  uret();const yeni=y.filter(e=>!uyg.has(e.id));if(!yeni.length)return;
+  yeni.forEach(e=>{uyg.add(e.id);const t=o.insaat||o.egitim;
+    if(t&&(t.y||0)<5){t.bitis-=60000;t.y=(t.y||0)+1;rapor(`🙋 ${esc(e.kim)} sana yardım etti: -1 dk`);bilgi(o.raporlar[0])}});
+  ciz();
+  try{await updateDoc(doc(db,"oyuncular",uid),{yardim:arrayRemove(...y)})}catch(e){}
+  await kaydet();
+}
+async function savasKontrol(v){ // iki ittifak arasında aktif savaş varsa savaş bilgisini döndürür
+  if(!o.ittifak||!v.ittifak)return null;
+  try{
+    const[a,b]=await Promise.all([getDoc(ittR(o.ittifak)),getDoc(ittR(v.ittifak))]),n=Date.now();
+    if(a.exists()&&a.data().dusman===v.ittifak&&a.data().savasBitis>n)return a.data();
+    if(b.exists()&&b.data().dusman===o.ittifak&&b.data().savasBitis>n)return b.data();
+  }catch(e){}
+  return null;
+}
+async function savasKutu(k,d){
+  const now=Date.now(),wars=[];
+  try{
+    if(d.dusman&&d.savasBitis>now){const e=(await getDoc(ittR(d.dusman))).data()||{};
+      wars.push({a:d.ad,b:e.ad||"?",bit:d.savasBitis,ap:(d.puan||{})["w"+d.savasBitis]||0,bp:(e.puan||{})["w"+d.savasBitis]||0})}
+    (await getDocs(query(collection(db,"ittifaklar"),where("dusman","==",o.ittifak)))).forEach(x=>{const w=x.data();
+      if(w.savasBitis>now)wars.push({a:w.ad,b:d.ad,bit:w.savasBitis,ap:(w.puan||{})["w"+w.savasBitis]||0,bp:(d.puan||{})["w"+w.savasBitis]||0})});
+  }catch(e){}
+  let h='<div class="c"><b>⚔️ İttifak Savaşı</b>';
+  h+=wars.length?wars.map(w=>`<div class="a">${esc(w.a)} <b>${w.ap}</b> – <b>${w.bp}</b> ${esc(w.b)}<br>Kalan: ${sureYaz((w.bit-now)/1000)}<br>Düşman üyelerini yenersen +1 puan ve yağma %35 olur.</div>`).join(""):'<div class="a">Aktif savaş yok.</div>';
+  if(d.lider===uid&&!(d.dusman&&d.savasBitis>now)){
+    let l="";
+    try{(await getDocs(query(collection(db,"ittifaklar"),limit(20)))).forEach(x=>{const e=x.data();
+      if(x.id!==o.ittifak&&Object.keys(e.uyeler||{}).length)l+=`<div class="r"><span style="flex:1;text-align:left">${esc(e.ad)}</span><button data-w="${x.id}">⚔️ Savaş ilan et</button></div>`})}catch(e){}
+    h+=`<div class="a">Lider olarak 💵 1.000 karşılığında 24 saatlik savaş ilan edebilirsin.</div>${l||'<div class="a">Başka ittifak yok.</div>'}`;
+  }
+  k.insertAdjacentHTML("beforeend",h+"</div>");
+  k.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>savasIlan(b.dataset.w));
+}
+async function savasIlan(id){
+  uret();if(o.para<1000)return bilgi("Savaş ilanı için 💵 1.000 gerekli.");
+  try{await updateDoc(ittR(o.ittifak),{dusman:id,savasBitis:Date.now()+86400000,puan:{}})}catch(e){return bilgi("İlan edilemedi: "+e.message)}
+  o.para-=1000;bilgi("⚔️ Savaş ilan edildi! 24 saat sürecek.");ciz();await kaydet();ittifakCiz();
 }
 function sohbetBaslat(id){
   if(sohbetUnsub)sohbetUnsub();
@@ -288,14 +340,14 @@ async function sohbetGonder(){
   catch(e){bilgi("Mesaj gönderilemedi: "+e.message)}
 }
 async function ittifakKur(){
-  uret();const ad=$("ittAd").value.trim().toLowerCase();
-  if(!/^[a-z0-9]{3,12}$/.test(ad))return bilgi("İttifak adı 3-12 karakter; harf (Türkçe karakter hariç) ve rakam olabilir.");
+  uret();const ad=$("ittAd").value.trim(),id=encodeURIComponent(ad.toLocaleLowerCase("tr")).replace(/\./g,"%2E");
+  if(ad.length<3||ad.length>16)return bilgi("İttifak adı 3-16 karakter olmalı (istediğin karakteri kullanabilirsin).");
   if(o.para<ITT_MALIYET)return bilgi("Yeterli paran yok.");
   try{
-    if((await getDoc(ittR(ad))).exists())return bilgi("Bu ittifak adı alınmış.");
-    await setDoc(ittR(ad),{ad,lider:uid,uyeler:{[uid]:o.kullaniciAdi},olusturma:Date.now()});
+    if((await getDoc(ittR(id))).exists())return bilgi("Bu ittifak adı alınmış.");
+    await setDoc(ittR(id),{ad,lider:uid,uyeler:{[uid]:o.kullaniciAdi},olusturma:Date.now()});
   }catch(e){return bilgi("Kurulamadı: "+e.message)}
-  o.para-=ITT_MALIYET;o.ittifak=ad;bilgi("🤝 İttifak kuruldu!");ciz();await kaydet();ittifakCiz();
+  o.para-=ITT_MALIYET;o.ittifak=id;bilgi("🤝 İttifak kuruldu!");ciz();await kaydet();ittifakCiz();
 }
 async function ittifakKatil(id){
   try{await updateDoc(ittR(id),{["uyeler."+uid]:o.kullaniciAdi})}catch(e){return bilgi("Katılamadı: "+e.message)}
@@ -327,7 +379,7 @@ async function baslat(u){
   kartlar();ciz();await kaydet();
   tick=setInterval(()=>{const mm=uret();if(mm.length){bilgi("✅ "+mm.join(" "));kaydet()}seferIsle();ciz()},1000);
   sav=setInterval(kaydet,30000);
-  unsub=onSnapshot(ref,sn=>{const g=sn.data()&&sn.data().gelen;if(g&&g.length&&o)uygula(g)});
+  unsub=onSnapshot(ref,sn=>{const dd=sn.data()||{};if(!o)return;if(dd.gelen&&dd.gelen.length)uygula(dd.gelen);if(dd.yardim&&dd.yardim.length)yardimUygula(dd.yardim)});
 }
 async function durdur(){clearInterval(tick);clearInterval(sav);if(unsub)unsub();if(sohbetUnsub)sohbetUnsub();await kaydet();uid=null;o=null}
 document.addEventListener("visibilitychange",()=>{if(document.hidden)kaydet()});
