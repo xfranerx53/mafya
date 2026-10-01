@@ -30,6 +30,10 @@ button:disabled{background:#555;color:#999}
 .bg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}.bk{background:#1a1a1a;border-radius:8px;padding:6px;font-size:12px;color:#bbb}.bk.on{outline:1px solid #e0b04a55}.bk>b{display:flex;justify-content:space-between;gap:4px;color:#fff;font-size:12px;margin-bottom:3px}.bk>b span{color:#e0b04a}.bk div{display:flex;justify-content:space-between;gap:4px;font-size:11px;color:#aaa;padding:1px 0}.bk i{font-style:normal;color:#8d8}.bk .bn{color:#666}
 .cz{display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;color:#111;font-weight:bold;margin-right:4px}
 </style></head><body>
+<div id="hataBant" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#a22;color:#fff;font:12px/1.4 monospace;padding:8px;white-space:pre-wrap;word-break:break-all"></div>
+<script>(function(){var b=function(m){var e=document.getElementById("hataBant");if(e){e.style.display="block";e.textContent="⚠️ Hata (bunu gönder): "+m}};
+window.addEventListener("error",function(e){b((e.message||"")+" @ satır "+(e.lineno||"?")+":"+(e.colno||"?"))});
+window.addEventListener("unhandledrejection",function(e){var r=e.reason;b("Promise: "+(r&&(r.code||r.message)||r))})})();</script>
 <div id="auth">
  <h1>Mafya Şehri</h1>
  <input id="kadi" type="text" placeholder="Kullanıcı adı" autocapitalize="none" autocomplete="username"><br><br>
@@ -947,5 +951,4 @@ const komHtml=()=>`<div class="c"><b>🕴️ Komutanlar</b><div class="a">Komuta
 async function komCagir(){uret();if(KA.some((x,i)=>o[x]<KMM[i]))return bilgi("Yeterli kaynak yok.");KA.forEach((x,i)=>o[x]-=KMM[i]);const ks=Object.keys(KM),k=ks[Math.floor(Math.random()*ks.length)];o.kmd[k]=Math.min(10,(o.kmd[k]||0)+1);if(!o.kakt)o.kakt=k;bilgi(`🕴️ ${KM[k].ad} geldi! Sv ${o.kmd[k]}`);ciz();await kaydet()}
 async function komSec(k){if(!o.kmd[k])return;o.kakt=k;bilgi(KM[k].ad+" aktif.");ciz();await kaydet()}
 const hizHtml=()=>{const T=[["insaat","🔨 İnşaat"],["insaat2","🔨 2. İnşaat"],["egitim","🎯 Eğitim"],["arg","🔬 Araştırma"]].filter(x=>o[x[0]]),var_=HO.filter(t=>(o.esya[t]||0)>0);return`<div class="c"><b>🎒 Hızlandırma</b><div class="a">${HO.map(t=>HZ[t][0]+" x"+n$(o.esya[t]||0)).join(" • ")}<br>Çete zaferlerinden ve görevlerden kazanılır. Tümü 📦 Depo sekmesinde de görünür.</div>${T.length?(var_.length?T.map(x=>`<div class="a">${x[1]}</div><div class="r" style="flex-wrap:wrap">${var_.map(t=>`<button data-h="${x[0]}|${t}">−${HZ[t][0]} (x${o.esya[t]})</button>`).join("")}</div>`).join(""):'<div class="a">Hızlandırıcın yok.</div>'):'<div class="a">Hızlandırılacak işlem yok.</div>'}</div>`};
-async function tedavi(){uret();let n=0;for(const t in AS){const c=hsm(t),w=o.hastane[t]||0,k=Math.min(w,...KA.map((x,i)=>Math.floor(o[x]/c[i])));if(k>0){KA.forEach((x,i)=>o[x]-=c[i]*k);o.hastane[t]-=k;o.askerler[t]=(o.askerler[t]||0)+k;n+=k}}bilgi(n?`🏥 ${n$(n)} asker tedavi edildi.`:"Tedavi için yeterli kaynak yok.");ciz();await kaydet()}
-async function arGel(a){uret();const l=o.ar[a],m=arM(l);if(l>=ARMAX)return;if(o.arg)return bilgi("Zaten bir araştırma sürüyor.");if(KA.some((k,i)=>o[k]<m[i]))return bilgi("Yeterli kaynak yok.");KA.forEach((k,i)=>o[k]-=m[i]);const n=Date.now();o.arg={a,baslangic:n,bitis:n+arS(l)*1000};bilgi(AR[a]+" araştırılıyor...");ciz(
+async function tedavi(){uret();let n=0;for(const t in AS){co
