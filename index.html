@@ -5,27 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mafya Şehri</title>
   <style>
-    body { background:#111; color:#fff; font-family:sans-serif; text-align:center; margin:0; padding:20px; }
+    body { background:#111; color:#fff; font-family:sans-serif; text-align:center; margin:0; }
     h1 { color:#e0b04a; }
+    #auth { padding:20px; }
     input[type=text], input[type=password] { padding:10px; width:80%; max-width:300px; border-radius:6px; border:0; }
     button { padding:10px 18px; border-radius:6px; border:0; background:#e0b04a; font-weight:bold; }
     label { font-size:14px; }
     #mesaj { color:#ff6b6b; }
+    #bar { display:flex; gap:6px; padding:10px; background:#1c1c1c; position:sticky; top:0; }
+    .kaynak { flex:1; background:#262626; border-radius:8px; padding:8px 4px; }
+    .kaynak .ikon { font-size:20px; }
+    .kaynak .deger { font-weight:bold; font-size:16px; }
+    .kaynak .saat { font-size:11px; color:#8c8; }
+    #sehir { padding:20px; }
+    .kutu { background:#1c1c1c; border-radius:10px; padding:16px; margin:12px 0; color:#aaa; }
   </style>
 </head>
 <body>
-  <div id="app">
+  <div id="auth">
     <h1>Mafya Şehri</h1>
-    <div id="auth">
-      <input id="kadi" type="text" placeholder="Kullanıcı adı" autocapitalize="none" autocomplete="username"><br><br>
-      <input id="sifre" type="password" placeholder="Şifre (en az 6 karakter)" autocomplete="current-password"><br><br>
-      <label><input id="hatirla" type="checkbox" checked> Beni hatırla</label><br><br>
-      <button id="girisBtn">Giriş Yap</button>
-      <button id="kayitBtn">Kayıt Ol</button>
-      <p id="mesaj"></p>
+    <input id="kadi" type="text" placeholder="Kullanıcı adı" autocapitalize="none" autocomplete="username"><br><br>
+    <input id="sifre" type="password" placeholder="Şifre (en az 6 karakter)" autocomplete="current-password"><br><br>
+    <label><input id="hatirla" type="checkbox" checked> Beni hatırla</label><br><br>
+    <button id="girisBtn">Giriş Yap</button>
+    <button id="kayitBtn">Kayıt Ol</button>
+    <p id="mesaj"></p>
+  </div>
+
+  <div id="oyun" style="display:none">
+    <div id="bar">
+      <div class="kaynak"><div class="ikon">💵</div><div class="deger" id="para">0</div><div class="saat" id="paraSaat"></div></div>
+      <div class="kaynak"><div class="ikon">🔫</div><div class="deger" id="silah">0</div><div class="saat" id="silahSaat"></div></div>
+      <div class="kaynak"><div class="ikon">🍞</div><div class="deger" id="yiyecek">0</div><div class="saat" id="yiyecekSaat"></div></div>
     </div>
-    <div id="oyun" style="display:none">
-      <p>Hoş geldin, <b id="kullanici"></b></p>
+    <div id="sehir">
+      <h1>Şehrin</h1>
+      <p>Patron: <b id="kullanici"></b></p>
+      <div class="kutu">🏢 Binalar çok yakında (Adım 4)</div>
       <button id="cikisBtn">Çıkış</button>
     </div>
   </div>
@@ -35,7 +51,7 @@
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged,
              setPersistence, browserLocalPersistence, browserSessionPersistence }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc }
+    import { getFirestore, doc, getDoc, setDoc, updateDoc }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -52,6 +68,7 @@
     const db = getFirestore(app);
     const $ = id => document.getElementById(id);
 
+    // ---------- GİRİŞ / KAYIT ----------
     const kadiAl = () => $("kadi").value.trim().toLowerCase();
     const sahteEposta = k => k + "@mafya.oyun";
 
@@ -61,10 +78,7 @@
         $("mesaj").textContent = "Kullanıcı adı 3-15 karakter olmalı; sadece harf (Türkçe karakter hariç), rakam ve _ kullanılabilir.";
         return null;
       }
-      if ($("sifre").value.length < 6) {
-        $("mesaj").textContent = "Şifre en az 6 karakter olmalı.";
-        return null;
-      }
+      if ($("sifre").value.length < 6) { $("mesaj").textContent = "Şifre en az 6 karakter olmalı."; return null; }
       return k;
     }
 
@@ -72,27 +86,21 @@
       const m = {
         "auth/email-already-in-use": "Bu kullanıcı adı zaten alınmış.",
         "auth/invalid-credential": "Kullanıcı adı veya şifre hatalı.",
-        "auth/user-not-found": "Kullanıcı bulunamadı.",
-        "auth/wrong-password": "Şifre hatalı.",
         "auth/too-many-requests": "Çok fazla deneme yapıldı, biraz bekle.",
         "auth/network-request-failed": "İnternet bağlantısı hatası."
       };
       $("mesaj").textContent = m[e.code] || e.message;
     }
 
-    async function kalicilikAyarla() {
-      await setPersistence(auth, $("hatirla").checked ? browserLocalPersistence : browserSessionPersistence);
-    }
+    const kalicilikAyarla = () =>
+      setPersistence(auth, $("hatirla").checked ? browserLocalPersistence : browserSessionPersistence);
 
     $("kayitBtn").onclick = async () => {
       $("mesaj").textContent = "";
       const k = kontrol(); if (!k) return;
       try {
         await kalicilikAyarla();
-        const r = await createUserWithEmailAndPassword(auth, sahteEposta(k), $("sifre").value);
-        await setDoc(doc(db, "oyuncular", r.user.uid), {
-          kullaniciAdi: k, para: 1000, silah: 500, yiyecek: 500, olusturma: Date.now()
-        });
+        await createUserWithEmailAndPassword(auth, sahteEposta(k), $("sifre").value);
       } catch (e) { hataYaz(e); }
     };
 
@@ -108,10 +116,73 @@
 
     $("cikisBtn").onclick = () => signOut(auth);
 
-    onAuthStateChanged(auth, u => {
-      $("auth").style.display = u ? "none" : "block";
-      $("oyun").style.display = u ? "block" : "none";
-      if (u) $("kullanici").textContent = u.email.split("@")[0];
+    // ---------- OYUN ----------
+    const URETIM = { para: 600, silah: 300, yiyecek: 300 }; // saatlik (Adım 4'te binalara bağlanacak)
+    let uid = null, o = null, tickId = null, kaydetId = null;
+
+    const sayi = n => Math.floor(n).toLocaleString("tr-TR");
+
+    function ciz() {
+      for (const k in URETIM) {
+        $(k).textContent = sayi(o[k]);
+        $(k + "Saat").textContent = "+" + sayi(URETIM[k]) + "/sa";
+      }
+    }
+
+    function uret() {
+      const simdi = Date.now();
+      const dt = Math.max(0, simdi - o.sonGuncelleme) / 3600000;
+      for (const k in URETIM) o[k] += URETIM[k] * dt;
+      o.sonGuncelleme = simdi;
+    }
+
+    async function kaydet() {
+      if (!uid || !o) return;
+      uret();
+      try {
+        await updateDoc(doc(db, "oyuncular", uid), {
+          para: o.para, silah: o.silah, yiyecek: o.yiyecek, sonGuncelleme: o.sonGuncelleme
+        });
+      } catch (e) { console.error("Kayıt hatası", e); }
+    }
+
+    async function oyunuBaslat(u) {
+      uid = u.uid;
+      const ref = doc(db, "oyuncular", uid);
+      const s = await getDoc(ref);
+      if (s.exists()) {
+        o = s.data();
+      } else {
+        o = { kullaniciAdi: u.email.split("@")[0], para: 1000, silah: 500, yiyecek: 500,
+              olusturma: Date.now(), sonGuncelleme: Date.now() };
+        await setDoc(ref, o);
+      }
+      if (!o.sonGuncelleme) o.sonGuncelleme = Date.now();
+      uret();
+      $("kullanici").textContent = o.kullaniciAdi || u.email.split("@")[0];
+      ciz();
+      tickId = setInterval(() => { uret(); ciz(); }, 1000);
+      kaydetId = setInterval(kaydet, 30000);
+    }
+
+    async function oyunuDurdur() {
+      clearInterval(tickId); clearInterval(kaydetId);
+      await kaydet();
+      uid = null; o = null;
+    }
+
+    document.addEventListener("visibilitychange", () => { if (document.hidden) kaydet(); });
+
+    onAuthStateChanged(auth, async u => {
+      if (u) {
+        $("auth").style.display = "none";
+        $("oyun").style.display = "block";
+        await oyunuBaslat(u);
+      } else {
+        await oyunuDurdur();
+        $("auth").style.display = "block";
+        $("oyun").style.display = "none";
+      }
     });
   </script>
 </body>
