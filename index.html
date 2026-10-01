@@ -31,9 +31,13 @@ button:disabled{background:#555;color:#999}
 .cz{display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;color:#111;font-weight:bold;margin-right:4px}
 </style></head><body>
 <div id="hataBant" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#a22;color:#fff;font:12px/1.4 monospace;padding:8px;white-space:pre-wrap;word-break:break-all"></div>
-<script>(function(){var b=function(m){var e=document.getElementById("hataBant");if(e){e.style.display="block";e.textContent="⚠️ Hata (bunu gönder): "+m}};
-window.addEventListener("error",function(e){var t=e.target;if(t&&t.tagName==="SCRIPT"){b("Script dosyası yüklenemedi: "+(t.src||"modül")+" (Firebase dosyaları açılamıyor olabilir)");return}b((e.message||"")+" @ satır "+(e.lineno||"?")+":"+(e.colno||"?"))},true);setTimeout(function(){if(!window.__ok)b("Oyun kodu çalışmadı. Firebase dosyaları (gstatic.com) yüklenmemiş olabilir; interneti/VPN/reklam engelleyiciyi kontrol et.")},4000);
-window.addEventListener("unhandledrejection",function(e){var r=e.reason;b("Promise: "+(r&&(r.code||r.message)||r))})})();</script>
+<script>(function(){var L=[],e0=function(){return document.getElementById("hataBant")},r=function(){var e=e0();if(!e)return;if(!L.length){e.style.display="none";return}e.style.display="block";e.textContent="⚠️ (bunu gönder):\n"+L.join("\n")};
+var b=function(m){if(m===null){L=[];r();return}if(L.indexOf(m)<0)L.push(m);r()};window.__hb=b;
+var h=function(t){var e=document.getElementById("mesaj");if(e&&!window.__ready)e.textContent=t};
+document.addEventListener("DOMContentLoaded",function(){h("⏳ Oyun yükleniyor, birkaç saniye bekle...")});
+window.addEventListener("error",function(e){var t=e.target;if(t&&t.tagName==="SCRIPT"){b("Script yüklenemedi: "+(t.src||"modül"));return}b((e.message||"")+" @ satır "+(e.lineno||"?")+":"+(e.colno||"?"))},true);
+window.addEventListener("unhandledrejection",function(e){var r2=e.reason;b("Promise: "+(r2&&(r2.code||r2.message)||r2))});
+setTimeout(function(){if(!window.__ready)b("Firebase dosyaları hâlâ yüklenemedi (internet yavaş olabilir). Bekle ya da sayfayı yenile.")},12000)})();</script>
 <div id="auth">
  <h1>Mafya Şehri</h1>
  <input id="kadi" type="text" placeholder="Kullanıcı adı" autocapitalize="none" autocomplete="username"><br><br>
@@ -67,12 +71,14 @@ window.addEventListener("unhandledrejection",function(e){var r=e.reason;b("Promi
  </div>
 </div>
 <script type="module">
-import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,setPersistence,browserLocalPersistence,browserSessionPersistence}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import{getFirestore,doc,getDoc,setDoc,updateDoc,collection,getDocs,query,limit,arrayUnion,arrayRemove,onSnapshot,deleteField,orderBy,addDoc,increment,where,deleteDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
 window.__ok=1;
+const __v="10.12.0",__yukle=async b=>{const k=["app","auth","firestore"];return Promise.all(k.map(x=>import(b==="g"?"https://www.gstatic.com/firebasejs/"+__v+"/firebase-"+x+".js":"https://cdn.jsdelivr.net/npm/firebase@"+__v+"/"+x+"/+esm")))};
+let __m;try{__m=await __yukle("g")}catch(e1){try{window.__hb&&window.__hb("gstatic açılamadı, yedek adres deneniyor...");__m=await __yukle("j")}catch(e2){window.__hb&&window.__hb("Firebase dosyaları yüklenemedi (gstatic ve jsdelivr). İnternetini/VPN/DNS/reklam engelleyiciyi kontrol et. Detay: "+(e2&&e2.message||e2));throw e2}}
+window.__ready=1;window.__hb&&window.__hb(null);
+const{initializeApp}=__m[0],{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,setPersistence,browserLocalPersistence,browserSessionPersistence}=__m[1],{getFirestore,doc,getDoc,setDoc,updateDoc,collection,getDocs,query,limit,arrayUnion,arrayRemove,onSnapshot,deleteField,orderBy,addDoc,increment,where,deleteDoc}=__m[2];
+
 const app=initializeApp({apiKey:"AIzaSyCKOWtGDm2-RwFOGT2UqaHUUYkB_zvxZI0",authDomain:"mafya-a6889.firebaseapp.com",projectId:"mafya-a6889",storageBucket:"mafya-a6889.firebasestorage.app",messagingSenderId:"717053621251",appId:"1:717053621251:web:2f2d5c9f80685f4f020a36"});
+{const mm=document.getElementById("mesaj");if(mm&&/yükleniyor/.test(mm.textContent))mm.textContent=""}
 const auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id),LS=localStorage;
 
 // ---------- GİRİŞ / BENİ HATIRLA ----------
@@ -949,6 +955,4 @@ async function bossIs(t,d){
 const KM={kara:{ad:"Kara Murat",ik:"🥷",b:"sal",t:"Saldırı"},cemil:{ad:"Demir Kasa Cemil",ik:"🛡️",b:"sav",t:"Savunma"},selim:{ad:"Muhasebeci Selim",ik:"🧮",b:"eko",t:"Üretim"},hasan:{ad:"Kurt Hasan",ik:"🐺",b:"yag",t:"Yağma"}},KMM=[2000,500,500],
 kb=b=>{const k=o.kakt;return etk(b)+.01*(o.ittifak?(o.itb||{})[b]||0:0)+(k&&KM[k]&&KM[k].b===b?.03*(o.kmd[k]||1)+.004*((o.kl[k]||1)-1)+.015*(o.keq[k]||0):0)};
 const komHtml=()=>`<div class="c"><b>🕴️ Komutanlar</b><div class="a">Komutan çağır: rastgele biri gelir; aynısı tekrar çıkarsa seviyesi artar (en çok 10). Aktif komutan seviye başına +%3 bonus verir.</div>${Object.keys(KM).map(k=>{const l=o.kmd[k]||0,X=KM[k];return l?`<div class="r"><span style="flex:1;text-align:left">${X.ik} ${X.ad} Sv ${l}<br><small>${X.t} +%${3*l}</small></span><button data-k="${k}" ${o.kakt===k?"disabled":""}>${o.kakt===k?"✅ Aktif":"Seç"}</button></div>`:""}).join("")||'<div class="a">Henüz komutanın yok.</div>'}<div class="a">${maliyetHtml(KMM,o)}</div><button id="kmBtn" ${KA.some((x,i)=>o[x]<KMM[i])?"disabled":""}>Komutan çağır</button></div>`;
-async function komCagir(){uret();if(KA.some((x,i)=>o[x]<KMM[i]))return bilgi("Yeterli kaynak yok.");KA.forEach((x,i)=>o[x]-=KMM[i]);const ks=Object.keys(KM),k=ks[Math.floor(Math.random()*ks.length)];o.kmd[k]=Math.min(10,(o.kmd[k]||0)+1);if(!o.kakt)o.kakt=k;bilgi(`🕴️ ${KM[k].ad} geldi! Sv ${o.kmd[k]}`);ciz();await kaydet()}
-async function komSec(k){if(!o.kmd[k])return;o.kakt=k;bilgi(KM[k].ad+" aktif.");ciz();await kaydet()}
-const hizHtml=()=>{const T=[["insaat","🔨 İnşaat"],["insaat2","🔨 2. İnşaat"],["egitim","🎯 Eğitim"],["arg","🔬 Araştırma"]].filter(x=>o[x[0]]),var_=HO.filter(t=>(o.esya[t]||0)>0);return`<div class="c"><b>🎒 Hızlandırma</b><div class="a">${HO.map(t=>HZ[t][0]+" x"+n$(o.esya[t]||0)).join(" • ")}<br>Çete zaferlerinden ve görevlerden kazanılır. Tümü 📦 Depo sekmesinde de görünür.</div>${T.length?(var_.length?T.map(x=>`<di
+async 
