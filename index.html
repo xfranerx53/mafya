@@ -280,7 +280,7 @@ function uret(){
 async function kaydet(){
   if(!uid||!o)return;uret();
   const g=gucler(o.askerler);o.guc=g[0]+g[1];
-  try{await updateDoc(doc(db,"oyuncular",uid),{para:o.para,silah:o.silah,yiyecek:o.yiyecek,binalar:o.binalar,insaat:o.insaat,insaat2:o.insaat2||null,takv:o.takv||null,askerler:o.askerler,egitim:o.egitim,raporlar:JSON.parse(JSON.stringify(o.raporlar)),is:o.is||{},rSon:o.rSon||0,top:o.top||null,npc:o.npc||{},kl:o.kl||{},kxp:o.kxp||{},keq:o.keq||{},rallyAl:o.rallyAl||[],olusturma:o.olusturma,st:o.st||{},bas:o.bas||{},itb:o.itb||{},ip:o.ip||0,ittifak:o.ittifak,seferler:o.seferler,yardimIste:!!(o.insaat||o.insaat2||o.egitim),guc:o.guc,hastane:o.hastane,ar:o.ar,gun:o.gun,odul:o.odul,arg:o.arg,cg:o.cg||{},cmax:o.cmax||0,esya:o.esya,pk:o.pk||{},en:o.en,seri:o.seri,kmd:o.kmd,bossAl:o.bossAl,bossSon:o.bossSon,x:o.x,y:o.y,kakt:o.kakt,kb:{sav:kb("sav")},sonGuncelleme:o.sonGuncelleme})}catch(e){console.error(e)}
+  try{await updateDoc(doc(db,"oyuncular",uid),{para:o.para,silah:o.silah,yiyecek:o.yiyecek,binalar:o.binalar,insaat:o.insaat,insaat2:o.insaat2||null,takv:o.takv||null,askerler:o.askerler,egitim:o.egitim,raporlar:JSON.parse(JSON.stringify(o.raporlar)),is:o.is||{},rSon:o.rSon||0,top:o.top||null,npc:o.npc||{},kl:o.kl||{},kxp:o.kxp||{},keq:o.keq||{},rallyAl:o.rallyAl||[],olusturma:o.olusturma,st:o.st||{},bas:o.bas||{},itb:o.itb||{},ip:o.ip||0,ittifak:o.ittifak,seferler:o.seferler,yardimIste:!!(o.insaat||o.insaat2||o.egitim),guc:o.guc,hastane:o.hastane,ar:o.ar,gun:o.gun,odul:o.odul,arg:o.arg,cg:o.cg||{},esya:o.esya,pk:o.pk||{},en:o.en,seri:o.seri,kmd:o.kmd,bossAl:o.bossAl,bossSon:o.bossSon,x:o.x,y:o.y,kakt:o.kakt,kb:{sav:kb("sav")},sonGuncelleme:o.sonGuncelleme})}catch(e){console.error(e)}
 }
 
 // ---------- BONUS DÖKÜMÜ / BİRLİK TABLOSU (raporlar için) ----------
@@ -608,19 +608,17 @@ function denge(a,d){
   for(const t in AS){const p=(a[t]||0)*AS[t].s,my=Object.keys(CT).find(k=>CT[k]===t);top+=p;s+=p*(1+.25*((d[CT[t]]||0)/T)-.25*((d[my]||0)/T))}
   return top?s/top:1;
 }
-// Çete seviyeleri 1-30. Savunma: 400 x Sv2 (Sv10 sonrası her seviye +%2). Yendiğin en yüksek seviyenin 3 üstüne kadar çete çıkar.
-const CMAX=30,CZ=[["🟢","Kolay"],["🟡","Orta"],["🟠","Zor"],["🔴","Çok zor"],["🟣","Efsane"]];
-const ceteTier=lv=>Math.min(4,Math.floor((lv-1)/6));
-const ceteD=lv=>Math.round(400*lv*lv*(1+Math.max(0,lv-10)*.02));
+// Çeteler Sv1-30. Çıkan en yüksek seviye = Kışla seviyesi + 3 (en çok 30).
+const ceteMax=()=>Math.min(30,((o&&o.binalar&&o.binalar.kisla)||1)+3);
+const ceteD=lv=>Math.round(400*lv*lv*(1+Math.max(0,lv-10)*.02)); // Sv5:10.000 Sv10:40.000 Sv20:192.000 Sv30:504.000
 const ceteR=lv=>[900,400,400].map(x=>Math.round(x*lv*(1+Math.max(0,lv-10)*.01)));
-const ceteAcik=()=>Math.min(CMAX,Math.max(2,(o&&o.cmax)||0)+3);
-const ceteLv=(h,g)=>1+(g?(Math.imul(h+g*977,2654435761)>>>9):(h>>>6))%ceteAcik();
+const ceteLv=(h,g)=>1+(g?(Math.imul(h+g*977,2654435761)>>>9):(h>>>6))%ceteMax();
 const cete=(x,y)=>{if(dugum(x,y))return null;const h=(Math.imul(x+7,2654435761)^Math.imul(y+3,40503))>>>0;return h%12===0?{x,y,lv:ceteLv(h,(o.cg||{})[x+"_"+y]||0),h}:null};
 function cetePanel(k){
   const L=[];for(let y=0;y<HB;y++)for(let x=0;x<HB;x++){const c=cete(x,y);if(c&&!(hDoc[x+"_"+y]||[]).length)L.push(c)}
   L.sort((a,b)=>mes(a)-mes(b));const now=Date.now(),A=gucler(o.askerler)[0]*(1+arB(o.ar.sal)+kb("sal"));
-  k.insertAdjacentHTML("beforeend",`<div class="c"><b>🕴️ Çeteler</b><div class="a">Haritadaki mor kareler (Sv1-30; şu an Sv1-${ceteAcik()} çıkıyor, daha yüksek seviyeyi yendikçe yenileri açılır). Evdeki tüm askerlerinle saldırırsın. Her saldırı ⚡${ENCETE} enerji harcar (şu an ⚡${o.en.v}). Her saldırıdan sonra 1 dk bekleme olur. Kazanırsan ödül alırsın ve yerine yeni bir çete gelir; kaybedersen ödül yok. Senin saldırın: ⚔️ ${n$(A)}</div>`+
-    L.slice(0,6).map(c=>{const D=ceteD(c.lv),R=ceteR(c.lv),Z=CZ[ceteTier(c.lv)],cd=(o.npc[c.x+"_"+c.y]||0)-now;return`<div class="r"><span style="flex:1;text-align:left">🕴️ Sv${c.lv} ${Z[0]} ${Z[1]} (${c.x},${c.y}) • 🛡️ ${n$(D)} <small>${A>D?"✅":"❌"} gücün %${Math.round(100*A/D)}</small><br><small>${KA.map((x,i)=>IK[x]+n$(R[i])).join(" ")}<br>+ ⏩ hızlandırma ve 📦 kaynak paketi (1-2 adet)</small></span><button data-c2="${c.x}_${c.y}" data-cd="${(o.npc[c.x+"_"+c.y]||0)}" ${cd>0?"disabled":""}>${cd>0?sureYaz(cd/1000):"Saldır ⚡"+ENCETE}</button></div>`}).join("")+"</div>");
+  k.insertAdjacentHTML("beforeend",`<div class="c"><b>🕴️ Çeteler</b><div class="a">Haritadaki mor kareler (Sv1-30; şu an Sv1-${ceteMax()} çıkıyor, Kışla yükseldikçe yeni seviyeler açılır). Evdeki tüm askerlerinle saldırırsın. Her saldırı ⚡${ENCETE} enerji harcar (şu an ⚡${o.en.v}). Her saldırıdan sonra 1 dk bekleme olur. Kazanırsan ödül alırsın ve yerine yeni bir çete gelir; kaybedersen ödül yok. Senin saldırın: ⚔️ ${n$(A)}</div>`+
+    L.slice(0,6).map(c=>{const D=ceteD(c.lv),cd=(o.npc[c.x+"_"+c.y]||0)-now;return`<div class="r"><span style="flex:1;text-align:left">🕴️ Sv${c.lv} (${c.x},${c.y}) • 🛡️ ${n$(D)}<br><small>${KA.map((x,i)=>IK[x]+n$(ceteR(c.lv)[i])).join(" ")}<br>+ ⏩ hızlandırma ve 📦 kaynak paketi (1-2 adet)</small></span><button data-c2="${c.x}_${c.y}" data-cd="${(o.npc[c.x+"_"+c.y]||0)}" ${cd>0?"disabled":""}>${cd>0?sureYaz(cd/1000):"Saldır ⚡"+ENCETE}</button></div>`}).join("")+"</div>");
   k.querySelectorAll("[data-c2]").forEach(b=>b.onclick=()=>{const[x,y]=b.dataset.c2.split("_").map(Number);ceteSaldir(x,y)});
 }
 async function ceteSaldir(x,y){
@@ -631,11 +629,11 @@ async function ceteSaldir(x,y){
   for(const t in AS){const l=Math.ceil((o.askerler[t]||0)*k);o.askerler[t]-=l;kay+=l;yar+=Math.floor(l/2);o.hastane[t]=(o.hastane[t]||0)+Math.floor(l/2)}
   gp("sal");o.npc[key]=Date.now()+60000;ist("cs");ist("ak",kay);
   const d=[`⚔️ Saldırın ${n$(A)} • 🛡️ Çete savunması ${n$(D)}`,`💀 Kayıp: ${n$(kay)} asker (%${Math.round(k*100)}) • 🏥 Hastaneye: ${n$(yar)}`,`⚡ Harcanan enerji: ${ENCETE}`];let m;
-  if(kazan){const R=ceteR(c.lv);KA.forEach((x2,i)=>o[x2]+=R[i]);const od=ceteOdulVer(c.lv);o.cmax=Math.max(o.cmax||0,c.lv);let g2=(o.cg[key]||0)+1;while(ceteLv(c.h,g2)===c.lv)g2++;o.cg[key]=g2;ist("cz");
+  if(kazan){const R=ceteR(c.lv);KA.forEach((x2,i)=>o[x2]+=R[i]);const od=ceteOdulVer(c.lv);let g2=(o.cg[key]||0)+1;while(ceteLv(c.h,g2)===c.lv)g2++;o.cg[key]=g2;ist("cz");
     d.push(`🎁 Ödül: ${KA.map((x2,i)=>IK[x2]+n$(R[i])).join(" ")}`,`🎁 ${od}`,`🆕 Yerine yeni bir çete geldi`);
     m=`🕴️ Sv${c.lv} çeteyi yendin! Ödül: ${KA.map((x2,i)=>IK[x2]+n$(R[i])).join(" ")} + ${od} • Kaybın: %${Math.round(k*100)}`}
   else{d.push("❌ Ödül alınamadı");m=`💀 Sv${c.lv} çeteye yenildin. Askerlerinin %${Math.round(k*100)}'ini kaybettin.`}
-  if(kazan){kxpVer(50+3*c.lv)}rapor(m,"cete",{s:kazan?"z":"y",b:`Sv${c.lv} Çete (${x},${y})`,d,x:{sides:[{rol:"Saldıran",ad:o.kullaniciAdi,guc:Math.round(A),ham:Math.round(ham),bonus:bn,br:birlikTab(gon,k)},{rol:"Savunan",ad:`Sv${c.lv} Çete`,guc:D,bonus:[],br:[],not:"Çete savunması = 400 × Sv² (Sv10'dan sonra her seviye +%2). Çete birliklerinin sayısı gösterilmez."}]}});bilgi(m);ciz();await kaydet();haritaCiz();
+  if(kazan){kxpVer(60)}rapor(m,"cete",{s:kazan?"z":"y",b:`Sv${c.lv} Çete (${x},${y})`,d,x:{sides:[{rol:"Saldıran",ad:o.kullaniciAdi,guc:Math.round(A),ham:Math.round(ham),bonus:bn,br:birlikTab(gon,k)},{rol:"Savunan",ad:`Sv${c.lv} Çete`,guc:D,bonus:[],br:[],not:"Çete savunması = 400 × Sv². Çete birliklerinin sayısı gösterilmez."}]}});bilgi(m);ciz();await kaydet();haritaCiz();
 }
 // ---------- KOMUTAN GELİŞİMİ (XP, seviye, ekipman) ----------
 function kxpVer(n){const k=o.kakt;if(!k||!o.kmd[k])return;o.kxp[k]=(o.kxp[k]||0)+n;let l=o.kl[k]||1;while(l<30&&o.kxp[k]>=100*l){o.kxp[k]-=100*l;l++}o.kl[k]=l}
@@ -654,8 +652,8 @@ async function komGel(t){
 // ---------- İTTİFAK RALLY (toplu çete saldırısı) ----------
 function rallyKutu(k,d){
   const r=d.rally,now=Date.now(),R_=r&&!r.sonuc&&now<r.bitis,kat=r?(r.kat||{}):{};let h='<div class="c"><b>📢 İttifak Rally</b>';
-  const D=r?(r.hedef?0:ceteD(r.lv)*4):0,top=Object.values(kat).reduce((a,x)=>a+gucler(x.a)[0],0);
-  if(!r||r.sonuc&&now-r.bitis>36e5||!R_&&!r.sonuc&&now-r.bitis>6e5&&!kat[uid])h+=`<div class="a">Üyeler askerlerini birleştirip çeteye saldırır. 5 dk katılım süresi. Ödül gücüne göre paylaşılır.</div><div class="r"><input type="text" id="ryAd" placeholder="Oyuncu adı (boşsa çete saldırısı)"></div><div class="r"><select id="ryLv">${Array.from({length:CMAX},(_,i)=>i+1).map(i=>`<option value="${i}">Sv${i} çete (🛡️ ${n$(ceteD(i)*4)})</option>`).join("")}</select><button data-ry="yeni">Başlat</button></div>`;
+  const D=r?(r.hedef?0:1600*r.lv*r.lv):0,top=Object.values(kat).reduce((a,x)=>a+gucler(x.a)[0],0);
+  if(!r||r.sonuc&&now-r.bitis>36e5||!R_&&!r.sonuc&&now-r.bitis>6e5&&!kat[uid])h+=`<div class="a">Üyeler askerlerini birleştirip çeteye saldırır. 5 dk katılım süresi. Ödül gücüne göre paylaşılır.</div><div class="r"><input type="text" id="ryAd" placeholder="Oyuncu adı (boşsa çete saldırısı)"></div><div class="r"><select id="ryLv">${[1,2,3,4,5].map(i=>`<option value="${i}">Sv${i} çete (🛡️ ${n$(1600*i*i)})</option>`).join("")}</select><button data-ry="yeni">Başlat</button></div>`;
   else if(R_)h+=`<div class="a">${esc(r.bas)} rally başlattı: ${r.hedef?"👤 "+esc(r.hedefAd):"Sv"+r.lv+" çete • 🛡️ "+n$(D)}<br>Katılan: ${Object.keys(kat).length} • ⚔️ ${n$(top)} • Kalan ${sureYaz((r.bitis-now)/1000)}</div><button data-ry="katil" ${kat[uid]?"disabled":""}>${kat[uid]?"Katıldın":"Tüm askerlerle katıl"}</button>`;
   else if(!r.sonuc)h+=`<div class="a">Katılım bitti (⚔️ ${n$(top)}${r.hedef?"":" / 🛡️ "+n$(D)}).</div><button data-ry="coz">Savaşı başlat</button>`;
   else{h+=`<div class="a">${r.sonuc.kazandi?"🏆 Rally kazanıldı!":"💀 Rally kaybedildi."} Kayıp %${Math.round(r.sonuc.k*100)}</div>`;
@@ -675,12 +673,12 @@ async function rallyIs(t,r){
       await updateDoc(ittR(o.ittifak),{["rally.kat."+uid]:{ad:o.kullaniciAdi,a}});for(const x in a)o.askerler[x]-=a[x];bilgi("📢 Askerlerin rally'ye katıldı.");ciz();await kaydet()}
     else if(t==="coz"){
       const f=(await getDoc(ittR(o.ittifak))).data().rally;if(!f||f.sonuc||now<f.bitis)return;
-      if(f.hedef)return rallyOyuncu(f);const A=Object.values(f.kat||{}).reduce((s2,x)=>s2+gucler(x.a)[0],0),D=ceteD(f.lv)*4,kz=A>D,k=kz?Math.min(.4,.25*D/A):.4;
+      if(f.hedef)return rallyOyuncu(f);const A=Object.values(f.kat||{}).reduce((s2,x)=>s2+gucler(x.a)[0],0),D=1600*f.lv*f.lv,kz=A>D,k=kz?Math.min(.4,.25*D/A):.4;
       await updateDoc(ittR(o.ittifak),{"rally.sonuc":{kazandi:kz,k,A}});bilgi(kz?"🏆 Rally kazanıldı!":"💀 Rally kaybedildi.")}
     else if(t==="al"){
       if(o.rallyAl.includes(r.id)||!(r.kat||{})[uid])return;const m=r.kat[uid],A=r.sonuc.top||r.sonuc.A||1,pay=gucler(m.a)[0]/A;let kay=0;
       for(const x in m.a){const l=Math.ceil(m.a[x]*r.sonuc.k);kay+=l;o.askerler[x]=(o.askerler[x]||0)+m.a[x]-l;o.hastane[x]=(o.hastane[x]||0)+Math.floor(l/2)}
-      const ly=KA.map((x,i)=>r.sonuc.kazandi?Math.floor((r.sonuc.yagma?r.sonuc.yagma[x]:ceteR(r.lv)[i]*4)*pay):0);
+      const ly=KA.map((x,i)=>r.sonuc.kazandi?Math.floor((r.sonuc.yagma?r.sonuc.yagma[x]:[3600,1600,1600][i]*r.lv)*pay):0);
       if(r.sonuc.kazandi){KA.forEach((x,i)=>o[x]+=ly[i]);kxpVer(80)}
       ist("rs");if(r.sonuc.kazandi)ist("rz");ist("ak",kay);
       rapor(r.sonuc.kazandi?"🏆 Rally kazanıldı":"💀 Rally kaybedildi","rally",{s:r.sonuc.kazandi?"z":"y",b:r.hedef?"Rally: "+esc(r.hedefAd||"oyuncu"):"Rally: Sv"+r.lv+" çete",d:[`⚔️ Birleşik saldırı ${n$(r.sonuc.top||r.sonuc.A||0)}`,`🤝 Payın: %${Math.round(pay*100)} • 💀 Kayıp: ${n$(kay)} asker`,r.sonuc.kazandi?`🎁 Ödül: ${KA.map((x,i)=>IK[x]+n$(ly[i])).join(" ")}`:"❌ Ödül yok"],x:{sides:[{rol:"Saldıran",ad:"Rally birliklerin",guc:Math.round(gucler(m.a)[0]),bonus:[],br:birlikTab(m.a,r.sonuc.k),not:"Rally gücü tüm katılımcıların toplamıdır; payın %"+Math.round(pay*100)}]}});
@@ -949,7 +947,7 @@ async function baslat(u){
   o.binalar=Object.assign({kumarhane:1,silahatolyesi:1,restoran:1,karargah:1,kisla:1,depo:1,duvar:1,hastane:1},o.binalar||{});
   o.askerler=Object.assign({serseri:0,tetikci:0,nisanci:0,muhafiz:0,elitt:0,komando:0},o.askerler||{});
   if(o.insaat===undefined)o.insaat=null;if(o.insaat2===undefined)o.insaat2=null;if(o.egitim===undefined)o.egitim=null;
-  o.raporlar=(o.raporlar||[]).map(r=>typeof r==="string"?{t:0,tip:"bilgi",s:"n",b:"",d:[],m:r}:r);o.is=o.is||{};o.rSon=o.rSon||0;o.ittifak=o.ittifak||null;o.seferler=o.seferler||[];o.hastane=o.hastane||{};o.ar=Object.assign({sal:0,sav:0,eko:0,enr:0},o.ar||{});o.gun=o.gun||{t:"",g:{},al:{}};o.odul=o.odul||[];o.npc=o.npc||{};o.kl=o.kl||{};o.kxp=o.kxp||{};o.keq=o.keq||{};o.rallyAl=o.rallyAl||[];o.arg=o.arg||null;o.esya=Object.assign({hiz:0,h1:0,h5:0,h15:0,h30:0,h60:0},o.esya||{});o.pk=o.pk||{};o.cg=o.cg||{};o.cmax=o.cmax||0;if(!o.en||typeof o.en.v!=="number")o.en={v:ENMAX,t:Date.now()};o.seri=o.seri||0;o.kmd=o.kmd||{};o.kakt=o.kakt||null;o.bossAl=o.bossAl||[];o.bossSon=o.bossSon||0;if(o.x==null){o.x=Math.floor(Math.random()*HB);o.y=Math.floor(Math.random()*HB)}
+  o.raporlar=(o.raporlar||[]).map(r=>typeof r==="string"?{t:0,tip:"bilgi",s:"n",b:"",d:[],m:r}:r);o.is=o.is||{};o.rSon=o.rSon||0;o.ittifak=o.ittifak||null;o.seferler=o.seferler||[];o.hastane=o.hastane||{};o.ar=Object.assign({sal:0,sav:0,eko:0,enr:0},o.ar||{});o.gun=o.gun||{t:"",g:{},al:{}};o.odul=o.odul||[];o.npc=o.npc||{};o.kl=o.kl||{};o.kxp=o.kxp||{};o.keq=o.keq||{};o.rallyAl=o.rallyAl||[];o.arg=o.arg||null;o.esya=Object.assign({hiz:0,h1:0,h5:0,h15:0,h30:0,h60:0},o.esya||{});o.pk=o.pk||{};o.cg=o.cg||{};if(!o.en||typeof o.en.v!=="number")o.en={v:ENMAX,t:Date.now()};o.seri=o.seri||0;o.kmd=o.kmd||{};o.kakt=o.kakt||null;o.bossAl=o.bossAl||[];o.bossSon=o.bossSon||0;if(o.x==null){o.x=Math.floor(Math.random()*HB);o.y=Math.floor(Math.random()*HB)}
   const m=uret();if(m.length)bilgi("✅ "+m.join(" "));
   $("kullanici").textContent=o.kullaniciAdi||u.email.split("@")[0];
   kartlar();ciz();if(o.ittifak)getDoc(ittR(o.ittifak)).then(x=>{const q=x.data()||{};o.itb=q.tek||{};o.ikale=q.kale||null}).catch(()=>{});await kaydet();
@@ -963,4 +961,4 @@ onAuthStateChanged(auth,async u=>{
   if(u){$("auth").style.display="none";$("oyun").style.display="block";await baslat(u)}
   else{await durdur();$("auth").style.display="block";$("oyun").style.display="none"}
 });
-</
+</script></body></html>
