@@ -10,15 +10,27 @@
     #auth { padding:20px; }
     input[type=text], input[type=password] { padding:10px; width:80%; max-width:300px; border-radius:6px; border:0; }
     button { padding:10px 18px; border-radius:6px; border:0; background:#e0b04a; font-weight:bold; }
+    button:disabled { background:#555; color:#999; }
     label { font-size:14px; }
     #mesaj { color:#ff6b6b; }
-    #bar { display:flex; gap:6px; padding:10px; background:#1c1c1c; position:sticky; top:0; }
+    #bar { display:flex; gap:6px; padding:10px; background:#1c1c1c; position:sticky; top:0; z-index:5; }
     .kaynak { flex:1; background:#262626; border-radius:8px; padding:8px 4px; }
     .kaynak .ikon { font-size:20px; }
     .kaynak .deger { font-weight:bold; font-size:16px; }
     .kaynak .saat { font-size:11px; color:#8c8; }
-    #sehir { padding:20px; }
-    .kutu { background:#1c1c1c; border-radius:10px; padding:16px; margin:12px 0; color:#aaa; }
+    #sehir { padding:12px; max-width:500px; margin:0 auto; }
+    #bilgi { min-height:20px; font-size:14px; color:#e0b04a; margin:6px 0; }
+    .bina { background:#1c1c1c; border-radius:10px; padding:14px; margin:10px 0; text-align:left; }
+    .ust { display:flex; align-items:center; gap:8px; }
+    .bikon { font-size:28px; }
+    .sev { margin-left:auto; background:#e0b04a; color:#111; border-radius:6px; padding:2px 8px; font-weight:bold; font-size:13px; }
+    .acik { font-size:13px; color:#aaa; margin:6px 0; }
+    .maliyet { font-size:13px; margin:6px 0; }
+    .yok { color:#ff6b6b; }
+    .durum { margin:6px 0; font-size:13px; color:#e0b04a; min-height:16px; }
+    .cubuk { height:6px; background:#333; border-radius:3px; overflow:hidden; margin-top:4px; }
+    .cubuk div { height:100%; background:#e0b04a; width:0%; }
+    .bina button { width:100%; margin-top:6px; }
   </style>
 </head>
 <body>
@@ -41,8 +53,9 @@
     <div id="sehir">
       <h1>Şehrin</h1>
       <p>Patron: <b id="kullanici"></b></p>
-      <div class="kutu">🏢 Binalar çok yakında (Adım 4)</div>
-      <button id="cikisBtn">Çıkış</button>
+      <div id="bilgi"></div>
+      <div id="binalar"></div>
+      <br><button id="cikisBtn">Çıkış</button><br><br>
     </div>
   </div>
 
@@ -116,24 +129,69 @@
 
     $("cikisBtn").onclick = () => signOut(auth);
 
-    // ---------- OYUN ----------
-    const URETIM = { para: 600, silah: 300, yiyecek: 300 }; // saatlik (Adım 4'te binalara bağlanacak)
+    // ---------- OYUN AYARLARI ----------
+    const KAYNAKLAR = ["para", "silah", "yiyecek"];
+    const IKON = { para: "💵", silah: "🔫", yiyecek: "🍞" };
+    const MAX_SEVIYE = 10;
+
+    // baz: seviye başına saatlik üretim | maliyet: 1. seviyeden 2.'ye yükseltme bedeli
+    const BINALAR = {
+      kumarhane:     { ad: "Kumarhane",      ikon: "🎰", uretim: "para",    baz: 600, maliyet: { para: 150, silah: 50,  yiyecek: 50 } },
+      silahatolyesi: { ad: "Silah Atölyesi", ikon: "🔫", uretim: "silah",   baz: 300, maliyet: { para: 150, silah: 50,  yiyecek: 50 } },
+      restoran:      { ad: "Restoran",       ikon: "🍝", uretim: "yiyecek", baz: 300, maliyet: { para: 150, silah: 50,  yiyecek: 50 } },
+      karargah:      { ad: "Karargah",       ikon: "🏛️", uretim: null,      baz: 0,   maliyet: { para: 250, silah: 100, yiyecek: 100 } }
+    };
+
+    const BASLANGIC_SURE = 20;   // saniye (1. seviyeden 2. seviyeye)
+    const CARPAN = 1.8;          // her seviyede maliyet ve süre bu kadar artar
+
     let uid = null, o = null, tickId = null, kaydetId = null;
 
     const sayi = n => Math.floor(n).toLocaleString("tr-TR");
 
-    function ciz() {
-      for (const k in URETIM) {
-        $(k).textContent = sayi(o[k]);
-        $(k + "Saat").textContent = "+" + sayi(URETIM[k]) + "/sa";
-      }
+    function sureYaz(sn) {
+      sn = Math.max(0, Math.ceil(sn));
+      const s = Math.floor(sn / 3600), d = Math.floor((sn % 3600) / 60), r = sn % 60;
+      return (s ? s + "sa " : "") + (s || d ? d + "dk " : "") + r + "sn";
     }
 
+    const maliyetHesapla = (b, sev) => {
+      const m = {};
+      for (const k of KAYNAKLAR) m[k] = Math.floor(BINALAR[b].maliyet[k] * Math.pow(CARPAN, sev - 1));
+      return m;
+    };
+
+    const sureHesapla = (sev) => {
+      const indirim = Math.max(0.4, 1 - 0.05 * (o.binalar.karargah - 1));
+      return Math.ceil(BASLANGIC_SURE * Math.pow(CARPAN, sev - 1) * indirim);
+    };
+
+    const uretimSaat = k => {
+      let t = 0;
+      for (const b in BINALAR) if (BINALAR[b].uretim === k) t += BINALAR[b].baz * o.binalar[b];
+      return t;
+    };
+
+    // ---------- ÜRETİM ----------
+    function aralikUret(bas, bit) {
+      const dt = Math.max(0, bit - bas) / 3600000;
+      for (const k of KAYNAKLAR) o[k] += uretimSaat(k) * dt;
+    }
+
+    // Biten inşaat varsa bina anahtarını döndürür
     function uret() {
       const simdi = Date.now();
-      const dt = Math.max(0, simdi - o.sonGuncelleme) / 3600000;
-      for (const k in URETIM) o[k] += URETIM[k] * dt;
+      let biten = null;
+      if (o.insaat && simdi >= o.insaat.bitis) {
+        aralikUret(o.sonGuncelleme, o.insaat.bitis);
+        o.sonGuncelleme = Math.max(o.sonGuncelleme, o.insaat.bitis);
+        biten = o.insaat.bina;
+        o.binalar[biten]++;
+        o.insaat = null;
+      }
+      aralikUret(o.sonGuncelleme, simdi);
       o.sonGuncelleme = simdi;
+      return biten;
     }
 
     async function kaydet() {
@@ -141,11 +199,99 @@
       uret();
       try {
         await updateDoc(doc(db, "oyuncular", uid), {
-          para: o.para, silah: o.silah, yiyecek: o.yiyecek, sonGuncelleme: o.sonGuncelleme
+          para: o.para, silah: o.silah, yiyecek: o.yiyecek,
+          binalar: o.binalar, insaat: o.insaat, sonGuncelleme: o.sonGuncelleme
         });
       } catch (e) { console.error("Kayıt hatası", e); }
     }
 
+    function bilgi(m) { $("bilgi").textContent = m; }
+
+    // ---------- YÜKSELTME ----------
+    async function yukselt(b) {
+      uret();
+      if (o.insaat) { bilgi("Zaten bir inşaat sürüyor."); return; }
+      const sev = o.binalar[b];
+      if (sev >= MAX_SEVIYE) { bilgi("Bu bina maksimum seviyede."); return; }
+      const m = maliyetHesapla(b, sev);
+      for (const k of KAYNAKLAR) if (o[k] < m[k]) { bilgi("Yeterli kaynak yok."); return; }
+      for (const k of KAYNAKLAR) o[k] -= m[k];
+      const sure = sureHesapla(sev);
+      const simdi = Date.now();
+      o.insaat = { bina: b, baslangic: simdi, bitis: simdi + sure * 1000 };
+      bilgi(BINALAR[b].ad + " yükseltiliyor...");
+      ciz();
+      await kaydet();
+    }
+
+    // ---------- ARAYÜZ ----------
+    function kartlariOlustur() {
+      const kap = $("binalar");
+      kap.innerHTML = "";
+      for (const b in BINALAR) {
+        const d = document.createElement("div");
+        d.className = "bina";
+        d.innerHTML =
+          '<div class="ust"><span class="bikon">' + BINALAR[b].ikon + '</span><b>' + BINALAR[b].ad +
+          '</b><span class="sev" id="s_' + b + '"></span></div>' +
+          '<div class="acik" id="a_' + b + '"></div>' +
+          '<div class="maliyet" id="m_' + b + '"></div>' +
+          '<div class="durum" id="d_' + b + '"></div>' +
+          '<div class="cubuk" id="c_' + b + '" style="display:none"><div></div></div>' +
+          '<button id="b_' + b + '">Yükselt</button>';
+        kap.appendChild(d);
+        $("b_" + b).onclick = () => yukselt(b);
+      }
+    }
+
+    function ciz() {
+      for (const k of KAYNAKLAR) {
+        $(k).textContent = sayi(o[k]);
+        $(k + "Saat").textContent = "+" + sayi(uretimSaat(k)) + "/sa";
+      }
+      const simdi = Date.now();
+      for (const b in BINALAR) {
+        const sev = o.binalar[b], B = BINALAR[b];
+        const maks = sev >= MAX_SEVIYE;
+        $("s_" + b).textContent = "Sv " + sev;
+
+        if (B.uretim) {
+          const yeni = maks ? "" : " → " + sayi(B.baz * (sev + 1));
+          $("a_" + b).textContent = IKON[B.uretim] + " " + sayi(B.baz * sev) + yeni + " /saat";
+        } else {
+          const ind = Math.round(Math.min(60, 5 * (sev - 1)));
+          $("a_" + b).textContent = "İnşaat süresi: -%" + ind + (maks ? "" : " → -%" + Math.round(Math.min(60, 5 * sev)));
+        }
+
+        const btn = $("b_" + b), cubuk = $("c_" + b), durum = $("d_" + b), mal = $("m_" + b);
+        if (maks) {
+          mal.textContent = "";
+          durum.textContent = "Maksimum seviye";
+          btn.style.display = "none";
+          cubuk.style.display = "none";
+          continue;
+        }
+        const m = maliyetHesapla(b, sev);
+        mal.innerHTML = KAYNAKLAR.map(k =>
+          '<span class="' + (o[k] < m[k] ? "yok" : "") + '">' + IKON[k] + " " + sayi(m[k]) + "</span>"
+        ).join(" &nbsp; ") + " &nbsp; ⏱ " + sureYaz(sureHesapla(sev));
+
+        if (o.insaat && o.insaat.bina === b) {
+          const kalan = (o.insaat.bitis - simdi) / 1000;
+          const toplam = (o.insaat.bitis - o.insaat.baslangic) / 1000;
+          durum.textContent = "🔨 Yükseltiliyor: " + sureYaz(kalan);
+          cubuk.style.display = "block";
+          cubuk.firstChild.style.width = Math.min(100, 100 * (1 - kalan / toplam)) + "%";
+          btn.disabled = true;
+        } else {
+          durum.textContent = "";
+          cubuk.style.display = "none";
+          btn.disabled = !!o.insaat;
+        }
+      }
+    }
+
+    // ---------- OYUNU BAŞLAT / DURDUR ----------
     async function oyunuBaslat(u) {
       uid = u.uid;
       const ref = doc(db, "oyuncular", uid);
@@ -158,10 +304,21 @@
         await setDoc(ref, o);
       }
       if (!o.sonGuncelleme) o.sonGuncelleme = Date.now();
-      uret();
+      o.binalar = Object.assign({ kumarhane: 1, silahatolyesi: 1, restoran: 1, karargah: 1 }, o.binalar || {});
+      if (o.insaat === undefined) o.insaat = null;
+
+      const biten = uret();
+      if (biten) bilgi("✅ " + BINALAR[biten].ad + " yükseltmesi tamamlandı!");
       $("kullanici").textContent = o.kullaniciAdi || u.email.split("@")[0];
+      kartlariOlustur();
       ciz();
-      tickId = setInterval(() => { uret(); ciz(); }, 1000);
+      await kaydet();
+
+      tickId = setInterval(() => {
+        const b = uret();
+        if (b) { bilgi("✅ " + BINALAR[b].ad + " yükseltmesi tamamlandı!"); kaydet(); }
+        ciz();
+      }, 1000);
       kaydetId = setInterval(kaydet, 30000);
     }
 
