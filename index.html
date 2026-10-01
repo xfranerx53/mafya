@@ -44,7 +44,7 @@ button:disabled{background:#555;color:#999}
   </div>
   <div id="t3" style="display:none">
    <button id="bulBtn" style="width:100%">🔍 Rakipleri Bul</button>
-   <div id="rakipler"></div>
+   <div id="sef"></div><div id="sKutu"></div><div id="rakipler"></div>
    <h3>📜 Savaş Raporları</h3><div id="rap"></div>
   </div>
   <div id="t4" style="display:none"></div>
@@ -54,7 +54,7 @@ button:disabled{background:#555;color:#999}
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,setPersistence,browserLocalPersistence,browserSessionPersistence}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import{getFirestore,doc,getDoc,setDoc,updateDoc,collection,getDocs,query,limit,arrayUnion,arrayRemove,onSnapshot,deleteField}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import{getFirestore,doc,getDoc,setDoc,updateDoc,collection,getDocs,query,limit,arrayUnion,arrayRemove,onSnapshot,deleteField,orderBy,addDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const app=initializeApp({apiKey:"AIzaSyCKOWtGDm2-RwFOGT2UqaHUUYkB_zvxZI0",authDomain:"mafya-a6889.firebaseapp.com",projectId:"mafya-a6889",storageBucket:"mafya-a6889.firebasestorage.app",messagingSenderId:"717053621251",appId:"1:717053621251:web:2f2d5c9f80685f4f020a36"});
 const auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id),LS=localStorage;
@@ -119,12 +119,18 @@ function uret(){
   if(o.insaat&&now>=o.insaat.bitis){aralik(o.sonGuncelleme,o.insaat.bitis);o.sonGuncelleme=Math.max(o.sonGuncelleme,o.insaat.bitis);const b=o.insaat.bina;o.binalar[b]++;o.insaat=null;ms.push(B[b].ad+" yükseltmesi tamamlandı!")}
   aralik(o.sonGuncelleme,now);o.sonGuncelleme=now;
   if(o.egitim&&now>=o.egitim.bitis){const e=o.egitim;o.askerler[e.asker]=(o.askerler[e.asker]||0)+e.adet;o.egitim=null;ms.push(n$(e.adet)+" "+AS[e.asker].ad+" eğitildi!")}
+  o.seferler=o.seferler.filter(sf=>{
+    if(sf.durum==="doniyor"&&now>=sf.donus){
+      for(const t in sf.hayatta)o.askerler[t]=(o.askerler[t]||0)+(sf.hayatta[t]||0);
+      KA.forEach(k=>o[k]+=sf.yagma[k]||0);
+      ms.push("🏠 Askerlerin "+sf.hedefAd+" seferinden döndü!");return false}
+    return true});
   return ms;
 }
 async function kaydet(){
   if(!uid||!o)return;uret();
   const g=gucler(o.askerler);o.guc=g[0]+g[1];
-  try{await updateDoc(doc(db,"oyuncular",uid),{para:o.para,silah:o.silah,yiyecek:o.yiyecek,binalar:o.binalar,insaat:o.insaat,askerler:o.askerler,egitim:o.egitim,raporlar:o.raporlar,ittifak:o.ittifak,guc:o.guc,sonGuncelleme:o.sonGuncelleme})}catch(e){console.error(e)}
+  try{await updateDoc(doc(db,"oyuncular",uid),{para:o.para,silah:o.silah,yiyecek:o.yiyecek,binalar:o.binalar,insaat:o.insaat,askerler:o.askerler,egitim:o.egitim,raporlar:o.raporlar,ittifak:o.ittifak,seferler:o.seferler,guc:o.guc,sonGuncelleme:o.sonGuncelleme})}catch(e){console.error(e)}
 }
 const rapor=m=>{o.raporlar.unshift(m);o.raporlar=o.raporlar.slice(0,10)};
 
@@ -152,25 +158,51 @@ async function rakipBul(){
     const s=await getDocs(query(collection(db,"oyuncular"),limit(25)));let h="";
     s.forEach(d=>{
       if(d.id===uid)return;const v=d.data(),mut=!!o.ittifak&&v.ittifak===o.ittifak,kor=mut||Date.now()<(v.olusturma||0)+KORUMA;
-      h+=`<div class="c"><div class="u"><span>🕴️</span><b>${esc(v.kullaniciAdi||"?")}</b><span class="sv">Güç ${n$(v.guc||0)}</span></div><button data-id="${d.id}" ${kor?"disabled":""}>${mut?"🤝 Müttefik":kor?"🛡 Korumalı":"💥 Saldır"}</button></div>`;
+      h+=`<div class="c"><div class="u"><span>🕴️</span><b>${esc(v.kullaniciAdi||"?")}</b><span class="sv">Güç ${n$(v.guc||0)}</span></div><button data-id="${d.id}" data-ad="${esc(v.kullaniciAdi||"?")}" ${kor?"disabled":""}>${mut?"🤝 Müttefik":kor?"🛡 Korumalı":"💥 Saldır"}</button></div>`;
     });
     $("rakipler").innerHTML=h||'<div class="c">Henüz başka oyuncu yok. Arkadaşlarını davet et!</div>';
-    $("rakipler").querySelectorAll("button[data-id]").forEach(b=>b.onclick=()=>saldir(b.dataset.id));
+    $("rakipler").querySelectorAll("button[data-id]").forEach(b=>b.onclick=()=>saldirPaneli(b.dataset.id,b.dataset.ad));
   }catch(e){$("rakipler").innerHTML='<div class="c">Liste alınamadı: '+e.message+'</div>'}
 }
-async function saldir(vid){
-  uret();const[A]=gucler(o.askerler);if(A<=0)return bilgi("Önce asker eğitmelisin.");
-  const vs=await getDoc(doc(db,"oyuncular",vid));if(!vs.exists())return bilgi("Hedef bulunamadı.");
-  const v=vs.data();if(o.ittifak&&v.ittifak===o.ittifak)return bilgi("Müttefikine saldıramazsın.");if(Date.now()<(v.olusturma||0)+KORUMA)return bilgi("Hedef korumalı.");
-  const D=100+gucler(v.askerler||{})[1],kazan=A>D;
-  const aK=kazan?Math.min(.6,.4*D/A):.7,dK=kazan?.6:Math.min(.4,.3*A/D);
-  const y={};KA.forEach(k=>y[k]=kazan?Math.floor((v[k]||0)*.25):0);
-  const ev={id:Date.now()+"_"+uid.slice(0,6),kim:o.kullaniciAdi,kazandi:kazan,dKay:dK,yagma:y};
-  try{await updateDoc(doc(db,"oyuncular",vid),{gelen:arrayUnion(ev)})}catch(e){return bilgi("Saldırı başarısız: "+e.message)}
-  for(const t in AS)o.askerler[t]=Math.floor((o.askerler[t]||0)*(1-aK));
-  KA.forEach(k=>o[k]+=y[k]);
-  const m=kazan?`🏆 ${v.kullaniciAdi} şehrine saldırdın ve kazandın! Yağma: ${KA.map(k=>IK[k]+n$(y[k])).join(" ")} • Kaybın: %${Math.round(aK*100)}`
-               :`💀 ${v.kullaniciAdi} şehrine saldırdın ve kaybettin. Askerlerinin %${Math.round(aK*100)}'ini kaybettin.`;
+const HIZ={serseri:30,tetikci:45,nisanci:60,muhafiz:90},isl=new Set(); // yürüyüş süresi (sn), en yavaş askere göre
+function saldirPaneli(vid,ad){
+  uret();if(o.seferler.length>=3)return bilgi("En fazla 3 sefer aynı anda yürüyebilir.");
+  $("sKutu").innerHTML=`<div class="c"><b>💥 Hedef: ${esc(ad)}</b>${Object.keys(AS).map(t=>`<div class="r"><span style="flex:1;text-align:left">${AS[t].ik} ${AS[t].ad} (${n$(o.askerler[t]||0)})</span><input type="number" id="g_${t}" value="0" min="0" max="${o.askerler[t]||0}" inputmode="numeric"></div>`).join("")}<div class="a">Yürüyüş süresi en yavaş askerin hızına göre belirlenir.</div><div class="r"><button id="gonBtn">Gönder</button><button id="iptBtn">İptal</button></div></div>`;
+  $("gonBtn").onclick=()=>gonder(vid,ad);$("iptBtn").onclick=()=>$("sKutu").innerHTML="";
+}
+async function gonder(vid,ad){
+  uret();if(o.seferler.length>=3)return bilgi("En fazla 3 sefer.");
+  const a={};let top=0,yol=0;
+  for(const t in AS){const n=Math.min(o.askerler[t]||0,Math.max(0,Math.floor(Number($("g_"+t).value)||0)));a[t]=n;top+=n;if(n>0)yol=Math.max(yol,HIZ[t])}
+  if(!top)return bilgi("Gönderilecek asker seç.");
+  for(const t in a)o.askerler[t]-=a[t];
+  const now=Date.now();
+  o.seferler.push({id:now+"_"+uid.slice(0,5),hedef:vid,hedefAd:ad,asker:a,yol,varis:now+yol*1000,durum:"gidiyor"});
+  $("sKutu").innerHTML="";bilgi(`➡️ ${ad} şehrine ${n$(top)} asker yola çıktı (${sureYaz(yol)}).`);ciz();await kaydet();
+}
+function seferIsle(){
+  const n=Date.now();
+  o.seferler.forEach(sf=>{if(sf.durum==="gidiyor"&&n>=sf.varis&&!isl.has(sf.id)){isl.add(sf.id);savas(sf).finally(()=>isl.delete(sf.id))}});
+}
+// Askerler hedefe vardığında savaş burada çözülür
+async function savas(sf){
+  const vs=await getDoc(doc(db,"oyuncular",sf.hedef)),v=vs.exists()?vs.data():null;
+  let m="",hay={...sf.asker},y={para:0,silah:0,yiyecek:0};
+  if(!v)m="Hedef şehir bulunamadı, askerlerin geri dönüyor.";
+  else if((o.ittifak&&v.ittifak===o.ittifak)||Date.now()<(v.olusturma||0)+KORUMA)m=`${esc(v.kullaniciAdi)} saldırıya uygun değildi (müttefik ya da korumalı). Askerlerin geri dönüyor.`;
+  else{
+    const A=gucler(sf.asker)[0],D=100+gucler(v.askerler||{})[1],kazan=A>D;
+    const aK=kazan?Math.min(.6,.4*D/A):.7,dK=kazan?.6:Math.min(.4,.3*A/D);
+    KA.forEach(k=>y[k]=kazan?Math.floor((v[k]||0)*.25):0);
+    try{await updateDoc(doc(db,"oyuncular",sf.hedef),{gelen:arrayUnion({id:sf.id,kim:o.kullaniciAdi,kazandi:kazan,dKay:dK,yagma:y})})}
+    catch(e){m="Saldırı iletilemedi: "+e.message;y={para:0,silah:0,yiyecek:0}}
+    if(!m){
+      for(const t in hay)hay[t]=Math.floor(hay[t]*(1-aK));
+      m=kazan?`🏆 ${esc(v.kullaniciAdi)} şehrini yendin! Yağma: ${KA.map(k=>IK[k]+n$(y[k])).join(" ")} • Kaybın: %${Math.round(aK*100)}`
+             :`💀 ${esc(v.kullaniciAdi)} şehrine yenildin. Askerlerinin %${Math.round(aK*100)}'ini kaybettin.`;
+    }
+  }
+  sf.durum="doniyor";sf.hayatta=hay;sf.yagma=y;sf.donus=sf.varis+sf.yol*1000;
   rapor(m);bilgi(m);ciz();await kaydet();
 }
 // Bize gelen saldırıları uygula
@@ -218,10 +250,11 @@ function ciz(){
   }
   if(o.egitim){const e=o.egitim,kalan=(e.bitis-now)/1000,top=(e.bitis-e.baslangic)/1000;$("egK").style.display="block";$("egY").textContent="🎯 Eğitimde: "+n$(e.adet)+" "+AS[e.asker].ad+" — "+sureYaz(kalan);$("egC").style.width=Math.min(100,100*(1-kalan/top))+"%"}
   else $("egK").style.display="none";
+  $("sef").innerHTML=o.seferler.map(sf=>`<div class="c"><b>${sf.durum==="gidiyor"?"➡️ "+esc(sf.hedefAd)+" şehrine yürüyor":"⬅️ Şehre dönüyor"}</b><div class="d">${sureYaz(((sf.durum==="gidiyor"?sf.varis:sf.donus)-now)/1000)}</div><div class="a">${Object.keys(sf.asker).filter(t=>sf.asker[t]>0).map(t=>AS[t].ik+" "+n$(sf.asker[t])).join(" ")}</div></div>`).join("");
   $("rap").innerHTML=o.raporlar.length?o.raporlar.map(r=>`<div class="rp">${r}</div>`).join(""):'<div class="rp">Henüz savaş yok.</div>';
 }
 // ---------- İTTİFAK ----------
-const ITT_MALIYET=500,ittR=id=>doc(db,"ittifaklar",id),esc=t=>String(t).replace(/[&<>"']/g,"");
+let sohbetUnsub=null;const ITT_MALIYET=500,ittR=id=>doc(db,"ittifaklar",id),esc=t=>String(t).replace(/[&<>"']/g,"");
 async function ittifakCiz(){
   const k=$("t4");k.innerHTML="Yükleniyor...";
   try{
@@ -231,6 +264,8 @@ async function ittifakCiz(){
       const d=s.data(),u=d.uyeler;
       k.innerHTML=`<div class="c"><div class="u"><span>🤝</span><b>${esc(d.ad)}</b><span class="sv">${Object.keys(u).length} üye</span></div><div class="a">${Object.keys(u).map(i=>(i===d.lider?"👑 ":"🕴️ ")+esc(u[i])).join("<br>")}</div><div class="a">Müttefiklerine saldıramazsın.</div><button id="ayrBtn">Ayrıl</button></div>`;
       $("ayrBtn").onclick=ittifakAyril;
+      k.insertAdjacentHTML("beforeend",'<div class="c"><b>💬 Sohbet</b><div class="r"><input type="text" id="sohM" placeholder="Mesaj yaz..." maxlength="200"><button id="sohBtn">Gönder</button></div><div id="sohbet" style="max-height:260px;overflow:auto"></div></div>');
+      $("sohBtn").onclick=sohbetGonder;sohbetBaslat(o.ittifak);
     }else{
       const s=await getDocs(query(collection(db,"ittifaklar"),limit(20)));let h="";
       s.forEach(x=>{const d=x.data(),n=Object.keys(d.uyeler||{}).length;if(n)h+=`<div class="c"><div class="u"><span>🤝</span><b>${esc(d.ad)}</b><span class="sv">${n} üye</span></div><button data-id="${x.id}">Katıl</button></div>`});
@@ -239,6 +274,18 @@ async function ittifakCiz(){
       k.querySelectorAll("button[data-id]").forEach(b=>b.onclick=()=>ittifakKatil(b.dataset.id));
     }
   }catch(e){k.innerHTML='<div class="c">Hata: '+e.message+'</div>'}
+}
+function sohbetBaslat(id){
+  if(sohbetUnsub)sohbetUnsub();
+  sohbetUnsub=onSnapshot(query(collection(db,"ittifaklar",id,"mesajlar"),orderBy("z","desc"),limit(30)),sn=>{
+    const el=$("sohbet");if(!el)return;
+    el.innerHTML=sn.docs.map(d=>{const x=d.data();return`<div class="rp"><b>${esc(x.kim)}:</b> ${esc(x.m)}</div>`}).join("")||'<div class="rp">Henüz mesaj yok.</div>';
+  },e=>{const el=$("sohbet");if(el)el.innerHTML='<div class="rp">Sohbet açılamadı: '+e.message+'</div>'});
+}
+async function sohbetGonder(){
+  const t=$("sohM").value.trim().slice(0,200);if(!t)return;
+  try{await addDoc(collection(db,"ittifaklar",o.ittifak,"mesajlar"),{kim:o.kullaniciAdi,m:t,z:Date.now(),uid});$("sohM").value=""}
+  catch(e){bilgi("Mesaj gönderilemedi: "+e.message)}
 }
 async function ittifakKur(){
   uret();const ad=$("ittAd").value.trim().toLowerCase();
@@ -260,7 +307,7 @@ async function ittifakAyril(){
     if(d.lider===uid&&kalan.length)p.lider=kalan[0];
     await updateDoc(ittR(o.ittifak),p);
   }catch(e){return bilgi("Ayrılamadı: "+e.message)}
-  o.ittifak=null;bilgi("İttifaktan ayrıldın.");await kaydet();ittifakCiz();
+  if(sohbetUnsub){sohbetUnsub();sohbetUnsub=null}o.ittifak=null;bilgi("İttifaktan ayrıldın.");await kaydet();ittifakCiz();
 }
 $("bulBtn").onclick=rakipBul;
 
@@ -274,15 +321,15 @@ async function baslat(u){
   o.binalar=Object.assign({kumarhane:1,silahatolyesi:1,restoran:1,karargah:1,kisla:1},o.binalar||{});
   o.askerler=Object.assign({serseri:0,tetikci:0,nisanci:0,muhafiz:0},o.askerler||{});
   if(o.insaat===undefined)o.insaat=null;if(o.egitim===undefined)o.egitim=null;
-  o.raporlar=o.raporlar||[];o.ittifak=o.ittifak||null;
+  o.raporlar=o.raporlar||[];o.ittifak=o.ittifak||null;o.seferler=o.seferler||[];
   const m=uret();if(m.length)bilgi("✅ "+m.join(" "));
   $("kullanici").textContent=o.kullaniciAdi||u.email.split("@")[0];
   kartlar();ciz();await kaydet();
-  tick=setInterval(()=>{const mm=uret();if(mm.length){bilgi("✅ "+mm.join(" "));kaydet()}ciz()},1000);
+  tick=setInterval(()=>{const mm=uret();if(mm.length){bilgi("✅ "+mm.join(" "));kaydet()}seferIsle();ciz()},1000);
   sav=setInterval(kaydet,30000);
   unsub=onSnapshot(ref,sn=>{const g=sn.data()&&sn.data().gelen;if(g&&g.length&&o)uygula(g)});
 }
-async function durdur(){clearInterval(tick);clearInterval(sav);if(unsub)unsub();await kaydet();uid=null;o=null}
+async function durdur(){clearInterval(tick);clearInterval(sav);if(unsub)unsub();if(sohbetUnsub)sohbetUnsub();await kaydet();uid=null;o=null}
 document.addEventListener("visibilitychange",()=>{if(document.hidden)kaydet()});
 onAuthStateChanged(auth,async u=>{
   if(u){$("auth").style.display="none";$("oyun").style.display="block";await baslat(u)}
