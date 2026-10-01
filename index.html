@@ -8,7 +8,7 @@
     body { background:#111; color:#fff; font-family:sans-serif; text-align:center; margin:0; }
     h1 { color:#e0b04a; }
     #auth { padding:20px; }
-    input[type=text], input[type=password] { padding:10px; width:80%; max-width:300px; border-radius:6px; border:0; }
+    input[type=text], input[type=password], input[type=number] { padding:10px; width:80%; max-width:300px; border-radius:6px; border:0; box-sizing:border-box; }
     button { padding:10px 18px; border-radius:6px; border:0; background:#e0b04a; font-weight:bold; }
     button:disabled { background:#555; color:#999; }
     label { font-size:14px; }
@@ -18,6 +18,9 @@
     .kaynak .ikon { font-size:20px; }
     .kaynak .deger { font-weight:bold; font-size:16px; }
     .kaynak .saat { font-size:11px; color:#8c8; }
+    #sekmeler { display:flex; gap:6px; padding:8px 10px 0; max-width:500px; margin:0 auto; }
+    .sekme { flex:1; background:#262626; color:#ccc; }
+    .sekme.aktif { background:#e0b04a; color:#111; }
     #sehir { padding:12px; max-width:500px; margin:0 auto; }
     #bilgi { min-height:20px; font-size:14px; color:#e0b04a; margin:6px 0; }
     .bina { background:#1c1c1c; border-radius:10px; padding:14px; margin:10px 0; text-align:left; }
@@ -31,6 +34,10 @@
     .cubuk { height:6px; background:#333; border-radius:3px; overflow:hidden; margin-top:4px; }
     .cubuk div { height:100%; background:#e0b04a; width:0%; }
     .bina button { width:100%; margin-top:6px; }
+    .egitimSatir { display:flex; gap:6px; margin-top:8px; }
+    .egitimSatir input { flex:1; width:auto; max-width:none; }
+    .egitimSatir button { width:auto; margin:0; }
+    .guc { background:#1c1c1c; border-radius:10px; padding:12px; margin:10px 0; }
   </style>
 </head>
 <body>
@@ -50,11 +57,29 @@
       <div class="kaynak"><div class="ikon">🔫</div><div class="deger" id="silah">0</div><div class="saat" id="silahSaat"></div></div>
       <div class="kaynak"><div class="ikon">🍞</div><div class="deger" id="yiyecek">0</div><div class="saat" id="yiyecekSaat"></div></div>
     </div>
+    <div id="sekmeler">
+      <button class="sekme aktif" id="sekmeSehir">🏙 Şehir</button>
+      <button class="sekme" id="sekmeOrdu">⚔️ Ordu</button>
+    </div>
     <div id="sehir">
-      <h1>Şehrin</h1>
       <p>Patron: <b id="kullanici"></b></p>
       <div id="bilgi"></div>
-      <div id="binalar"></div>
+
+      <div id="binalarSekme">
+        <div id="binalar"></div>
+      </div>
+
+      <div id="orduSekme" style="display:none">
+        <div class="guc">
+          ⚔️ Toplam saldırı: <b id="topSaldiri">0</b> &nbsp; 🛡️ Toplam savunma: <b id="topSavunma">0</b>
+        </div>
+        <div class="bina" id="egitimKutu" style="display:none">
+          <div class="durum" id="egitimYazi"></div>
+          <div class="cubuk"><div id="egitimCubuk"></div></div>
+        </div>
+        <div id="askerler"></div>
+      </div>
+
       <br><button id="cikisBtn">Çıkış</button><br><br>
     </div>
   </div>
@@ -129,17 +154,35 @@
 
     $("cikisBtn").onclick = () => signOut(auth);
 
+    // ---------- SEKMELER ----------
+    function sekmeAc(ad) {
+      $("binalarSekme").style.display = ad === "sehir" ? "block" : "none";
+      $("orduSekme").style.display = ad === "ordu" ? "block" : "none";
+      $("sekmeSehir").classList.toggle("aktif", ad === "sehir");
+      $("sekmeOrdu").classList.toggle("aktif", ad === "ordu");
+    }
+    $("sekmeSehir").onclick = () => sekmeAc("sehir");
+    $("sekmeOrdu").onclick = () => sekmeAc("ordu");
+
     // ---------- OYUN AYARLARI ----------
     const KAYNAKLAR = ["para", "silah", "yiyecek"];
     const IKON = { para: "💵", silah: "🔫", yiyecek: "🍞" };
     const MAX_SEVIYE = 10;
 
-    // baz: seviye başına saatlik üretim | maliyet: 1. seviyeden 2.'ye yükseltme bedeli
     const BINALAR = {
       kumarhane:     { ad: "Kumarhane",      ikon: "🎰", uretim: "para",    baz: 600, maliyet: { para: 150, silah: 50,  yiyecek: 50 } },
       silahatolyesi: { ad: "Silah Atölyesi", ikon: "🔫", uretim: "silah",   baz: 300, maliyet: { para: 150, silah: 50,  yiyecek: 50 } },
       restoran:      { ad: "Restoran",       ikon: "🍝", uretim: "yiyecek", baz: 300, maliyet: { para: 150, silah: 50,  yiyecek: 50 } },
-      karargah:      { ad: "Karargah",       ikon: "🏛️", uretim: null,      baz: 0,   maliyet: { para: 250, silah: 100, yiyecek: 100 } }
+      karargah:      { ad: "Karargah",       ikon: "🏛️", uretim: null,      baz: 0,   maliyet: { para: 250, silah: 100, yiyecek: 100 } },
+      kisla:         { ad: "Kışla",          ikon: "🏚️", uretim: null,      baz: 0,   maliyet: { para: 200, silah: 80,  yiyecek: 80 } }
+    };
+
+    // kisla: bu askeri eğitmek için gereken Kışla seviyesi | sure: 1 askerin eğitim süresi (sn)
+    const ASKERLER = {
+      serseri: { ad: "Sokak Serserisi", ikon: "🧢", kisla: 1, saldiri: 10, savunma: 8,   maliyet: { para: 50,  silah: 10,  yiyecek: 20 },  sure: 10 },
+      tetikci: { ad: "Tetikçi",         ikon: "🕶️", kisla: 3, saldiri: 30, savunma: 15,  maliyet: { para: 150, silah: 40,  yiyecek: 50 },  sure: 25 },
+      nisanci: { ad: "Keskin Nişancı",  ikon: "🎯", kisla: 5, saldiri: 70, savunma: 25,  maliyet: { para: 400, silah: 120, yiyecek: 120 }, sure: 60 },
+      muhafiz: { ad: "Zırhlı Muhafız",  ikon: "🛡️", kisla: 7, saldiri: 60, savunma: 120, maliyet: { para: 600, silah: 200, yiyecek: 200 }, sure: 90 }
     };
 
     const BASLANGIC_SURE = 20;   // saniye (1. seviyeden 2. seviyeye)
@@ -155,6 +198,8 @@
       return (s ? s + "sa " : "") + (s || d ? d + "dk " : "") + r + "sn";
     }
 
+    const indirimYuzde = sev => Math.min(60, 5 * (sev - 1));
+
     const maliyetHesapla = (b, sev) => {
       const m = {};
       for (const k of KAYNAKLAR) m[k] = Math.floor(BINALAR[b].maliyet[k] * Math.pow(CARPAN, sev - 1));
@@ -164,6 +209,15 @@
     const sureHesapla = (sev) => {
       const indirim = Math.max(0.4, 1 - 0.05 * (o.binalar.karargah - 1));
       return Math.ceil(BASLANGIC_SURE * Math.pow(CARPAN, sev - 1) * indirim);
+    };
+
+    const egitimSure = (t, adet) =>
+      Math.ceil(ASKERLER[t].sure * adet * Math.max(0.4, 1 - 0.05 * (o.binalar.kisla - 1)));
+
+    const maksAdet = t => {
+      let m = Infinity;
+      for (const k of KAYNAKLAR) m = Math.min(m, Math.floor(o[k] / ASKERLER[t].maliyet[k]));
+      return Math.max(0, m);
     };
 
     const uretimSaat = k => {
@@ -178,20 +232,28 @@
       for (const k of KAYNAKLAR) o[k] += uretimSaat(k) * dt;
     }
 
-    // Biten inşaat varsa bina anahtarını döndürür
+    // Biten işlerin mesajlarını dizi olarak döndürür
     function uret() {
       const simdi = Date.now();
-      let biten = null;
+      const mesajlar = [];
       if (o.insaat && simdi >= o.insaat.bitis) {
         aralikUret(o.sonGuncelleme, o.insaat.bitis);
         o.sonGuncelleme = Math.max(o.sonGuncelleme, o.insaat.bitis);
-        biten = o.insaat.bina;
-        o.binalar[biten]++;
+        const b = o.insaat.bina;
+        o.binalar[b]++;
         o.insaat = null;
+        mesajlar.push(BINALAR[b].ad + " yükseltmesi tamamlandı!");
       }
       aralikUret(o.sonGuncelleme, simdi);
       o.sonGuncelleme = simdi;
-      return biten;
+
+      if (o.egitim && simdi >= o.egitim.bitis) {
+        const e = o.egitim;
+        o.askerler[e.asker] = (o.askerler[e.asker] || 0) + e.adet;
+        o.egitim = null;
+        mesajlar.push(sayi(e.adet) + " " + ASKERLER[e.asker].ad + " eğitildi!");
+      }
+      return mesajlar;
     }
 
     async function kaydet() {
@@ -200,14 +262,16 @@
       try {
         await updateDoc(doc(db, "oyuncular", uid), {
           para: o.para, silah: o.silah, yiyecek: o.yiyecek,
-          binalar: o.binalar, insaat: o.insaat, sonGuncelleme: o.sonGuncelleme
+          binalar: o.binalar, insaat: o.insaat,
+          askerler: o.askerler, egitim: o.egitim,
+          sonGuncelleme: o.sonGuncelleme
         });
       } catch (e) { console.error("Kayıt hatası", e); }
     }
 
     function bilgi(m) { $("bilgi").textContent = m; }
 
-    // ---------- YÜKSELTME ----------
+    // ---------- BİNA YÜKSELTME ----------
     async function yukselt(b) {
       uret();
       if (o.insaat) { bilgi("Zaten bir inşaat sürüyor."); return; }
@@ -220,6 +284,23 @@
       const simdi = Date.now();
       o.insaat = { bina: b, baslangic: simdi, bitis: simdi + sure * 1000 };
       bilgi(BINALAR[b].ad + " yükseltiliyor...");
+      ciz();
+      await kaydet();
+    }
+
+    // ---------- ASKER EĞİTİMİ ----------
+    async function egit(t) {
+      uret();
+      if (o.egitim) { bilgi("Zaten bir eğitim sürüyor."); return; }
+      const A = ASKERLER[t];
+      if (o.binalar.kisla < A.kisla) { bilgi("Kışla seviyesi yetersiz."); return; }
+      const adet = Math.floor(Number($("n_" + t).value));
+      if (!(adet >= 1)) { bilgi("Geçerli bir adet gir."); return; }
+      for (const k of KAYNAKLAR) if (o[k] < A.maliyet[k] * adet) { bilgi("Yeterli kaynak yok."); return; }
+      for (const k of KAYNAKLAR) o[k] -= A.maliyet[k] * adet;
+      const simdi = Date.now();
+      o.egitim = { asker: t, adet, baslangic: simdi, bitis: simdi + egitimSure(t, adet) * 1000 };
+      bilgi(sayi(adet) + " " + A.ad + " eğitiliyor...");
       ciz();
       await kaydet();
     }
@@ -242,6 +323,28 @@
         kap.appendChild(d);
         $("b_" + b).onclick = () => yukselt(b);
       }
+
+      const ak = $("askerler");
+      ak.innerHTML = "";
+      for (const t in ASKERLER) {
+        const A = ASKERLER[t];
+        const d = document.createElement("div");
+        d.className = "bina";
+        d.innerHTML =
+          '<div class="ust"><span class="bikon">' + A.ikon + '</span><b>' + A.ad +
+          '</b><span class="sev" id="e_' + t + '"></span></div>' +
+          '<div class="acik">⚔️ ' + A.saldiri + ' &nbsp; 🛡️ ' + A.savunma + '</div>' +
+          '<div class="maliyet" id="em_' + t + '"></div>' +
+          '<div class="durum" id="ed_' + t + '"></div>' +
+          '<div class="egitimSatir">' +
+            '<input type="number" id="n_' + t + '" value="1" min="1" inputmode="numeric">' +
+            '<button id="mx_' + t + '">Maks</button>' +
+            '<button id="eb_' + t + '">Eğit</button>' +
+          '</div>';
+        ak.appendChild(d);
+        $("eb_" + t).onclick = () => egit(t);
+        $("mx_" + t).onclick = () => { $("n_" + t).value = Math.max(1, maksAdet(t)); };
+      }
     }
 
     function ciz() {
@@ -250,6 +353,8 @@
         $(k + "Saat").textContent = "+" + sayi(uretimSaat(k)) + "/sa";
       }
       const simdi = Date.now();
+
+      // Binalar
       for (const b in BINALAR) {
         const sev = o.binalar[b], B = BINALAR[b];
         const maks = sev >= MAX_SEVIYE;
@@ -258,9 +363,10 @@
         if (B.uretim) {
           const yeni = maks ? "" : " → " + sayi(B.baz * (sev + 1));
           $("a_" + b).textContent = IKON[B.uretim] + " " + sayi(B.baz * sev) + yeni + " /saat";
+        } else if (b === "karargah") {
+          $("a_" + b).textContent = "İnşaat süresi: -%" + indirimYuzde(sev) + (maks ? "" : " → -%" + indirimYuzde(sev + 1));
         } else {
-          const ind = Math.round(Math.min(60, 5 * (sev - 1)));
-          $("a_" + b).textContent = "İnşaat süresi: -%" + ind + (maks ? "" : " → -%" + Math.round(Math.min(60, 5 * sev)));
+          $("a_" + b).textContent = "Eğitim süresi: -%" + indirimYuzde(sev) + (maks ? "" : " → -%" + indirimYuzde(sev + 1)) + " • Yeni asker türlerini açar";
         }
 
         const btn = $("b_" + b), cubuk = $("c_" + b), durum = $("d_" + b), mal = $("m_" + b);
@@ -289,6 +395,35 @@
           btn.disabled = !!o.insaat;
         }
       }
+
+      // Ordu
+      let topS = 0, topV = 0;
+      for (const t in ASKERLER) {
+        const A = ASKERLER[t], n = o.askerler[t] || 0;
+        topS += n * A.saldiri; topV += n * A.savunma;
+        $("e_" + t).textContent = "x" + sayi(n);
+        $("em_" + t).innerHTML = KAYNAKLAR.map(k =>
+          '<span class="' + (o[k] < A.maliyet[k] ? "yok" : "") + '">' + IKON[k] + " " + sayi(A.maliyet[k]) + "</span>"
+        ).join(" &nbsp; ") + " &nbsp; ⏱ " + sureYaz(egitimSure(t, 1)) + " /adet";
+
+        const kilitli = o.binalar.kisla < A.kisla;
+        $("ed_" + t).textContent = kilitli ? "🔒 Kışla Sv " + A.kisla + " gerekli" : "";
+        $("eb_" + t).disabled = kilitli || !!o.egitim;
+        $("mx_" + t).disabled = kilitli;
+        $("n_" + t).disabled = kilitli;
+      }
+      $("topSaldiri").textContent = sayi(topS);
+      $("topSavunma").textContent = sayi(topV);
+
+      if (o.egitim) {
+        const e = o.egitim;
+        const kalan = (e.bitis - simdi) / 1000, toplam = (e.bitis - e.baslangic) / 1000;
+        $("egitimKutu").style.display = "block";
+        $("egitimYazi").textContent = "🎯 Eğitimde: " + sayi(e.adet) + " " + ASKERLER[e.asker].ad + " — " + sureYaz(kalan);
+        $("egitimCubuk").style.width = Math.min(100, 100 * (1 - kalan / toplam)) + "%";
+      } else {
+        $("egitimKutu").style.display = "none";
+      }
     }
 
     // ---------- OYUNU BAŞLAT / DURDUR ----------
@@ -304,19 +439,21 @@
         await setDoc(ref, o);
       }
       if (!o.sonGuncelleme) o.sonGuncelleme = Date.now();
-      o.binalar = Object.assign({ kumarhane: 1, silahatolyesi: 1, restoran: 1, karargah: 1 }, o.binalar || {});
+      o.binalar = Object.assign({ kumarhane: 1, silahatolyesi: 1, restoran: 1, karargah: 1, kisla: 1 }, o.binalar || {});
+      o.askerler = Object.assign({ serseri: 0, tetikci: 0, nisanci: 0, muhafiz: 0 }, o.askerler || {});
       if (o.insaat === undefined) o.insaat = null;
+      if (o.egitim === undefined) o.egitim = null;
 
-      const biten = uret();
-      if (biten) bilgi("✅ " + BINALAR[biten].ad + " yükseltmesi tamamlandı!");
+      const m = uret();
+      if (m.length) bilgi("✅ " + m.join(" "));
       $("kullanici").textContent = o.kullaniciAdi || u.email.split("@")[0];
       kartlariOlustur();
       ciz();
       await kaydet();
 
       tickId = setInterval(() => {
-        const b = uret();
-        if (b) { bilgi("✅ " + BINALAR[b].ad + " yükseltmesi tamamlandı!"); kaydet(); }
+        const mm = uret();
+        if (mm.length) { bilgi("✅ " + mm.join(" ")); kaydet(); }
         ciz();
       }, 1000);
       kaydetId = setInterval(kaydet, 30000);
