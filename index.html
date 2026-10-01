@@ -32,7 +32,7 @@ button:disabled{background:#555;color:#999}
 </style></head><body>
 <div id="hataBant" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#a22;color:#fff;font:12px/1.4 monospace;padding:8px;white-space:pre-wrap;word-break:break-all"></div>
 <script>(function(){var b=function(m){var e=document.getElementById("hataBant");if(e){e.style.display="block";e.textContent="⚠️ Hata (bunu gönder): "+m}};
-window.addEventListener("error",function(e){b((e.message||"")+" @ satır "+(e.lineno||"?")+":"+(e.colno||"?"))});
+window.addEventListener("error",function(e){var t=e.target;if(t&&t.tagName==="SCRIPT"){b("Script dosyası yüklenemedi: "+(t.src||"modül")+" (Firebase dosyaları açılamıyor olabilir)");return}b((e.message||"")+" @ satır "+(e.lineno||"?")+":"+(e.colno||"?"))},true);setTimeout(function(){if(!window.__ok)b("Oyun kodu çalışmadı. Firebase dosyaları (gstatic.com) yüklenmemiş olabilir; interneti/VPN/reklam engelleyiciyi kontrol et.")},4000);
 window.addEventListener("unhandledrejection",function(e){var r=e.reason;b("Promise: "+(r&&(r.code||r.message)||r))})})();</script>
 <div id="auth">
  <h1>Mafya Şehri</h1>
@@ -71,6 +71,7 @@ import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-ap
 import{getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged,setPersistence,browserLocalPersistence,browserSessionPersistence}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import{getFirestore,doc,getDoc,setDoc,updateDoc,collection,getDocs,query,limit,arrayUnion,arrayRemove,onSnapshot,deleteField,orderBy,addDoc,increment,where,deleteDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+window.__ok=1;
 const app=initializeApp({apiKey:"AIzaSyCKOWtGDm2-RwFOGT2UqaHUUYkB_zvxZI0",authDomain:"mafya-a6889.firebaseapp.com",projectId:"mafya-a6889",storageBucket:"mafya-a6889.firebasestorage.app",messagingSenderId:"717053621251",appId:"1:717053621251:web:2f2d5c9f80685f4f020a36"});
 const auth=getAuth(app),db=getFirestore(app),$=id=>document.getElementById(id),LS=localStorage;
 
@@ -950,5 +951,4 @@ kb=b=>{const k=o.kakt;return etk(b)+.01*(o.ittifak?(o.itb||{})[b]||0:0)+(k&&KM[k
 const komHtml=()=>`<div class="c"><b>🕴️ Komutanlar</b><div class="a">Komutan çağır: rastgele biri gelir; aynısı tekrar çıkarsa seviyesi artar (en çok 10). Aktif komutan seviye başına +%3 bonus verir.</div>${Object.keys(KM).map(k=>{const l=o.kmd[k]||0,X=KM[k];return l?`<div class="r"><span style="flex:1;text-align:left">${X.ik} ${X.ad} Sv ${l}<br><small>${X.t} +%${3*l}</small></span><button data-k="${k}" ${o.kakt===k?"disabled":""}>${o.kakt===k?"✅ Aktif":"Seç"}</button></div>`:""}).join("")||'<div class="a">Henüz komutanın yok.</div>'}<div class="a">${maliyetHtml(KMM,o)}</div><button id="kmBtn" ${KA.some((x,i)=>o[x]<KMM[i])?"disabled":""}>Komutan çağır</button></div>`;
 async function komCagir(){uret();if(KA.some((x,i)=>o[x]<KMM[i]))return bilgi("Yeterli kaynak yok.");KA.forEach((x,i)=>o[x]-=KMM[i]);const ks=Object.keys(KM),k=ks[Math.floor(Math.random()*ks.length)];o.kmd[k]=Math.min(10,(o.kmd[k]||0)+1);if(!o.kakt)o.kakt=k;bilgi(`🕴️ ${KM[k].ad} geldi! Sv ${o.kmd[k]}`);ciz();await kaydet()}
 async function komSec(k){if(!o.kmd[k])return;o.kakt=k;bilgi(KM[k].ad+" aktif.");ciz();await kaydet()}
-const hizHtml=()=>{const T=[["insaat","🔨 İnşaat"],["insaat2","🔨 2. İnşaat"],["egitim","🎯 Eğitim"],["arg","🔬 Araştırma"]].filter(x=>o[x[0]]),var_=HO.filter(t=>(o.esya[t]||0)>0);return`<div class="c"><b>🎒 Hızlandırma</b><div class="a">${HO.map(t=>HZ[t][0]+" x"+n$(o.esya[t]||0)).join(" • ")}<br>Çete zaferlerinden ve görevlerden kazanılır. Tümü 📦 Depo sekmesinde de görünür.</div>${T.length?(var_.length?T.map(x=>`<div class="a">${x[1]}</div><div class="r" style="flex-wrap:wrap">${var_.map(t=>`<button data-h="${x[0]}|${t}">−${HZ[t][0]} (x${o.esya[t]})</button>`).join("")}</div>`).join(""):'<div class="a">Hızlandırıcın yok.</div>'):'<div class="a">Hızlandırılacak işlem yok.</div>'}</div>`};
-async function tedavi(){uret();let n=0;for(const t in AS){co
+const hizHtml=()=>{const T=[["insaat","🔨 İnşaat"],["insaat2","🔨 2. İnşaat"],["egitim","🎯 Eğitim"],["arg","🔬 Araştırma"]].filter(x=>o[x[0]]),var_=HO.filter(t=>(o.esya[t]||0)>0);return`<div class="c"><b>🎒 Hızlandırma</b><div class="a">${HO.map(t=>HZ[t][0]+" x"+n$(o.esya[t]||0)).join(" • ")}<br>Çete zaferlerinden ve görevlerden kazanılır. Tümü 📦 Depo sekmesinde de görünür.</div>${T.length?(var_.length?T.map(x=>`<di
