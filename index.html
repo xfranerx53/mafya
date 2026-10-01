@@ -7,29 +7,33 @@
   <style>
     body { background:#111; color:#fff; font-family:sans-serif; text-align:center; margin:0; padding:20px; }
     h1 { color:#e0b04a; }
-    input { padding:10px; width:80%; max-width:300px; border-radius:6px; border:0; }
+    input[type=text], input[type=password] { padding:10px; width:80%; max-width:300px; border-radius:6px; border:0; }
     button { padding:10px 18px; border-radius:6px; border:0; background:#e0b04a; font-weight:bold; }
+    label { font-size:14px; }
+    #mesaj { color:#ff6b6b; }
   </style>
 </head>
 <body>
   <div id="app">
     <h1>Mafya Şehri</h1>
     <div id="auth">
-      <input id="email" type="email" placeholder="E-posta"><br><br>
-      <input id="sifre" type="password" placeholder="Şifre (en az 6 karakter)"><br><br>
+      <input id="kadi" type="text" placeholder="Kullanıcı adı" autocapitalize="none" autocomplete="username"><br><br>
+      <input id="sifre" type="password" placeholder="Şifre (en az 6 karakter)" autocomplete="current-password"><br><br>
+      <label><input id="hatirla" type="checkbox" checked> Beni hatırla</label><br><br>
       <button id="girisBtn">Giriş Yap</button>
       <button id="kayitBtn">Kayıt Ol</button>
       <p id="mesaj"></p>
     </div>
     <div id="oyun" style="display:none">
-      <p>Hoş geldin, <span id="kullanici"></span></p>
+      <p>Hoş geldin, <b id="kullanici"></b></p>
       <button id="cikisBtn">Çıkış</button>
     </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+             setPersistence, browserLocalPersistence, browserSessionPersistence }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getFirestore, doc, setDoc }
       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -48,18 +52,58 @@
     const db = getFirestore(app);
     const $ = id => document.getElementById(id);
 
+    const kadiAl = () => $("kadi").value.trim().toLowerCase();
+    const sahteEposta = k => k + "@mafya.oyun";
+
+    function kontrol() {
+      const k = kadiAl();
+      if (!/^[a-z0-9_]{3,15}$/.test(k)) {
+        $("mesaj").textContent = "Kullanıcı adı 3-15 karakter olmalı; sadece harf (Türkçe karakter hariç), rakam ve _ kullanılabilir.";
+        return null;
+      }
+      if ($("sifre").value.length < 6) {
+        $("mesaj").textContent = "Şifre en az 6 karakter olmalı.";
+        return null;
+      }
+      return k;
+    }
+
+    function hataYaz(e) {
+      const m = {
+        "auth/email-already-in-use": "Bu kullanıcı adı zaten alınmış.",
+        "auth/invalid-credential": "Kullanıcı adı veya şifre hatalı.",
+        "auth/user-not-found": "Kullanıcı bulunamadı.",
+        "auth/wrong-password": "Şifre hatalı.",
+        "auth/too-many-requests": "Çok fazla deneme yapıldı, biraz bekle.",
+        "auth/network-request-failed": "İnternet bağlantısı hatası."
+      };
+      $("mesaj").textContent = m[e.code] || e.message;
+    }
+
+    async function kalicilikAyarla() {
+      await setPersistence(auth, $("hatirla").checked ? browserLocalPersistence : browserSessionPersistence);
+    }
+
     $("kayitBtn").onclick = async () => {
+      $("mesaj").textContent = "";
+      const k = kontrol(); if (!k) return;
       try {
-        const k = await createUserWithEmailAndPassword(auth, $("email").value, $("sifre").value);
-        await setDoc(doc(db, "oyuncular", k.user.uid), {
-          email: k.user.email, para: 1000, silah: 500, yiyecek: 500, olusturma: Date.now()
+        await kalicilikAyarla();
+        const r = await createUserWithEmailAndPassword(auth, sahteEposta(k), $("sifre").value);
+        await setDoc(doc(db, "oyuncular", r.user.uid), {
+          kullaniciAdi: k, para: 1000, silah: 500, yiyecek: 500, olusturma: Date.now()
         });
-      } catch (e) { $("mesaj").textContent = e.message; }
+      } catch (e) { hataYaz(e); }
     };
 
     $("girisBtn").onclick = async () => {
-      try { await signInWithEmailAndPassword(auth, $("email").value, $("sifre").value); }
-      catch (e) { $("mesaj").textContent = e.message; }
+      $("mesaj").textContent = "";
+      const k = kadiAl();
+      if (!k || !$("sifre").value) { $("mesaj").textContent = "Kullanıcı adı ve şifre gir."; return; }
+      try {
+        await kalicilikAyarla();
+        await signInWithEmailAndPassword(auth, sahteEposta(k), $("sifre").value);
+      } catch (e) { hataYaz(e); }
     };
 
     $("cikisBtn").onclick = () => signOut(auth);
@@ -67,7 +111,7 @@
     onAuthStateChanged(auth, u => {
       $("auth").style.display = u ? "none" : "block";
       $("oyun").style.display = u ? "block" : "none";
-      if (u) $("kullanici").textContent = u.email;
+      if (u) $("kullanici").textContent = u.email.split("@")[0];
     });
   </script>
 </body>
