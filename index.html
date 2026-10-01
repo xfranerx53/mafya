@@ -122,7 +122,7 @@ const mal=(b,l)=>KA.map((k,i)=>Math.floor(B[b].m[i]*Math.pow(1.8,l-1)));
 const sure=l=>Math.ceil(20*Math.pow(1.8,l-1)*Math.max(.4,1-.05*(o.binalar.karargah-1)));
 const es=(t,n)=>Math.ceil(AS[t].t*n*Math.max(.4,1-.05*(o.binalar.kisla-1)));
 const maksAdet=t=>Math.max(0,Math.min(...KA.map((k,i)=>Math.floor(o[k]/AS[t].m[i]))));
-const ush=k=>Object.keys(B).reduce((t,b)=>t+(B[b].u===k?B[b].baz*o.binalar[b]:0),0)*(1+.05*o.ar.eko+.02*vip()+kb("eko"));
+const ush=k=>Object.keys(B).reduce((t,b)=>t+(B[b].u===k?B[b].baz*o.binalar[b]:0),0)*(1+.05*o.ar.eko+.02*vip()+kb("eko")+kBonus());
 const gucler=a=>{let s=0,v=0;for(const t in AS){s+=(a[t]||0)*AS[t].s;v+=(a[t]||0)*AS[t].v}return[s,v]};
 const maliyetHtml=(m,have)=>KA.map((k,i)=>`<span class="${have[k]<m[i]?"yok":""}">${IK[k]} ${n$(m[i])}</span>`).join(" &nbsp; ");
 
@@ -285,7 +285,7 @@ async function ittifakCiz(){
       k.innerHTML=`<div class="c"><div class="u"><span>🤝</span><b>${esc(d.ad)}</b><span class="sv">${Object.keys(u).length} üye</span></div><div class="a">${Object.keys(u).map(i=>`<div>${i===d.lider?"👑":"🕴️"} ${esc(u[i])}${i!==uid&&yi[i]?` <button class="yb" data-y="${i}">🙋 Yardım et</button>`:""}</div>`).join("")}</div><div class="a">Müttefiklerine saldıramazsın.</div><button id="ayrBtn">Ayrıl</button></div>`;
       $("ayrBtn").onclick=ittifakAyril;
       k.querySelectorAll("[data-y]").forEach(b=>b.onclick=()=>{b.disabled=true;yardimEt(b.dataset.y)});
-      await savasKutu(k,d);await odulKutu(k,d);bossKutu(k,d);rallyKutu(k,d);takviyeKutu(k,d);ittifakKutu(k,d);
+      await savasKutu(k,d);await odulKutu(k,d);bossKutu(k,d);rallyKutu(k,d);takviyeKutu(k,d);ittifakKutu(k,d);kaleKutu(k,d);
       k.insertAdjacentHTML("beforeend",'<div class="c"><b>💬 Sohbet</b><div class="r"><input type="text" id="sohM" placeholder="Mesaj yaz..." maxlength="200"><button id="sohBtn">Gönder</button></div><div id="sohbet" style="max-height:260px;overflow:auto"></div></div>');
       $("sohBtn").onclick=sohbetGonder;sohbetBaslat(o.ittifak);
     }else{
@@ -395,12 +395,12 @@ const HB=16,mesafe=v=>v.x==null?0:(Math.abs(v.x-o.x)+Math.abs(v.y-o.y))*3;let hD
 async function haritaCiz(){
   const k=$("t5");k.innerHTML="Yükleniyor...";
   try{
-    const s=await getDocs(query(collection(db,"oyuncular"),orderBy("guc","desc"),limit(150)));hDoc={};
+    const s=await getDocs(query(collection(db,"oyuncular"),orderBy("guc","desc"),limit(150)));hDoc={};try{ALL=(await getDocs(collection(db,"ittifaklar"))).docs.map(d=>({id:d.id,...d.data()})).filter(a=>a.kale)}catch(e){ALL=[]}
     s.forEach(d=>{const v=d.data();RK[d.id]=v;if(v.x!=null){const a=v.x+"_"+v.y;(hDoc[a]=hDoc[a]||[]).push(d.id)}});
     let g='<div style="display:grid;grid-template-columns:repeat('+HB+',1fr);gap:1px;background:#333">';
     for(let y=0;y<HB;y++)for(let x=0;x<HB;x++){const l=hDoc[x+"_"+y]||[];let c=dugum(x,y)?"#2c4a2c":cete(x,y)?"#6a2c7a":"#1c1c1c";
       if(l.length){const v=RK[l[0]];c=l.includes(uid)?"#e0b04a":(o.ittifak&&v.ittifak===o.ittifak)?"#4a4":Date.now()<(v.olusturma||0)+KORUMA?"#888":"#d44"}
-      g+=`<div data-h="${x}_${y}" style="aspect-ratio:1;background:${c}"></div>`}
+      g+=`<div data-h="${x}_${y}" style="aspect-ratio:1;background:${c};${terr(x,y)};font-size:9px;line-height:1">${kaleIk(x,y)}</div>`}
     k.innerHTML=`<div class="c"><b>🗺 Şehir Haritası</b><div class="a">🟡 sen • 🟢 müttefik • 🔴 rakip • ⚪ korumalı. Dokunup incele. Uzak hedefe yürüyüş daha uzun sürer (her kare +3 sn).</div>${g}</div></div><div id="hBilgi"></div>`;
     kaynakPanel(k).then(()=>cetePanel(k));k.onclick=e=>{const t=e.target.dataset,h=$("hBilgi");
       if(t.h){const[x,y]=t.h.split("_"),l=hDoc[t.h]||[];
@@ -427,7 +427,7 @@ const dugum=(x,y)=>{const h=(Math.imul(x+1,73856093)^Math.imul(y+1,19349663))>>>
 const mes=d=>o.x==null?0:mesafe(d);
 async function kaynakPanel(k){
   const M={};try{(await getDocs(collection(db,"nokta"))).forEach(d=>M[d.id]=d.data().bitis||0)}catch(e){}
-  const L=[];for(let y=0;y<HB;y++)for(let x=0;x<HB;x++){const d=dugum(x,y);if(d&&!(hDoc[x+"_"+y]||[]).length&&(M[x+"_"+y]||0)<Date.now())L.push(d)}
+  const L=[];for(let y=0;y<HB;y++)for(let x=0;x<HB;x++){const d=dugum(x,y);if(d&&!(hDoc[x+"_"+y]||[]).length&&(M[x+"_"+y]||0)<Date.now()&&terrSahip(x,y)!=="yabanci")L.push(d)}
   L.sort((a,b)=>mes(a)-mes(b));const t=o.top,hz=t&&Date.now()>=t.bitis;
   k.insertAdjacentHTML("beforeend",'<div class="c"><b>⛏ Kaynak Noktaları</b><div class="a">Haritadaki yeşil kareler. Asker harcanmaz ama yeterli askerin olmalı (Sv1: 10, Sv2: 20, Sv3: 30). Tek seferde bir toplama.</div>'+
     (t?`<div class="r"><span style="flex:1;text-align:left">${IK[t.k]} ${n$(t.m)} (${t.x},${t.y}) ${hz?"hazır!":"• "+sureYaz((t.bitis-Date.now())/1000)}</span><button data-ta="1" ${hz?"":"disabled"}>Teslim al</button></div>`
@@ -436,13 +436,13 @@ async function kaynakPanel(k){
   k.querySelectorAll("[data-ta]").forEach(b=>b.onclick=toplaAl);
 }
 async function topla(x,y){
-  uret();if(o.top)return bilgi("Zaten bir toplama sürüyor.");const d=dugum(x,y);if(!d)return;
+  uret();if(o.top)return bilgi("Zaten bir toplama sürüyor.");const d=dugum(x,y);if(!d)return;if(terrSahip(x,y)==="yabanci")return bilgi("Bu nokta başka bir ittifakın toprağında.");
   const n=Object.values(o.askerler).reduce((a,b)=>a+b,0);if(n<10*d.lv)return bilgi(`Bu nokta için en az ${10*d.lv} askerin olmalı.`);
   try{
     const nr=doc(db,"nokta",x+"_"+y),dk=await getDoc(nr);
     if(dk.exists()&&(dk.data().bitis||0)>Date.now()){bilgi("Bu noktayı başkası topluyor, tükenmiş.");return haritaCiz()}
     await setDoc(nr,{bitis:Date.now()+18e5,kim:uid})}catch(e){return bilgi("Nokta alınamadı: "+e.message)}
-  const sn=120*d.lv+mes(d);o.top={k:d.k,m:700*d.lv,x,y,bitis:Date.now()+sn*1000};bilgi(`⛏ ${IK[d.k]} toplamaya çıkıldı (${sureYaz(sn)}).`);ciz();await kaydet();haritaCiz();
+  const sn=120*d.lv+mes(d);o.top={k:d.k,m:Math.floor(700*d.lv*(terrSahip(x,y)==="ben"?1.5:1)),x,y,bitis:Date.now()+sn*1000};bilgi(`⛏ ${IK[d.k]} toplamaya çıkıldı (${sureYaz(sn)}).`);ciz();await kaydet();haritaCiz();
 }
 async function toplaAl(){
   uret();if(!o.top||Date.now()<o.top.bitis)return;gp("topla");o[o.top.k]+=o.top.m;bilgi(`⛏ +${n$(o.top.m)} ${IK[o.top.k]} toplandı!`);o.top=null;ciz();await kaydet();haritaCiz();
@@ -602,7 +602,7 @@ function odulCiz(){
   const el=$("odl");if(!el)return;gunK();const st=o.st||{},bas=o.bas||{};
   const key=JSON.stringify([st,bas,o.gun.al,o.seri,o.elmas]);if(el._k===key)return;el._k=key;
   const gn=((o.seri||1)-1)%7,tl=o.gun.al.tkv,cd=!o.gun.al.cek;
-  el.innerHTML=`<div class="c"><b>📅 Giriş Takvimi</b><div class="a">Her gün gir, seri bozulmazsa 7. günde büyük ödül. Bugün: ${gn+1}. gün → ${rw(TK[gn])}</div><div style="display:flex;gap:3px">${TK.map((r,i)=>`<div style="flex:1;font-size:11px;padding:4px 1px;border-radius:6px;background:${i===gn?"#e0b04a":"#262626"};color:${i===gn?"#111":"#aaa"}">${i+1}.gün</div>`).join("")}</div><button data-kg="tkv" ${tl?"disabled":""}>${tl?"Bugünkü ödül alındı":"🎁 Ödülü al"}</button></div>
+  el.innerHTML=etkHtml()+`<div class="c"><b>📅 Giriş Takvimi</b><div class="a">Her gün gir, seri bozulmazsa 7. günde büyük ödül. Bugün: ${gn+1}. gün → ${rw(TK[gn])}</div><div style="display:flex;gap:3px">${TK.map((r,i)=>`<div style="flex:1;font-size:11px;padding:4px 1px;border-radius:6px;background:${i===gn?"#e0b04a":"#262626"};color:${i===gn?"#111":"#aaa"}">${i+1}.gün</div>`).join("")}</div><button data-kg="tkv" ${tl?"disabled":""}>${tl?"Bugünkü ödül alındı":"🎁 Ödülü al"}</button></div>
   <div class="c"><b>🎰 Çekiliş</b><div class="a">Günde 1 bedava, sonrası 💎30. Kaynak, hızlandırma, elmas ya da büyük ödül çıkar. 💎 ${n$(o.elmas||0)}</div><button data-kg="cek" ${!cd&&(o.elmas||0)<30?"disabled":""}>${cd?"🎰 Bedava çevir":"🎰 Çevir (💎30)"}</button></div>
   <div class="c"><b>🏅 Başarımlar</b>${BSL.filter(b=>b.id.endsWith("0")||bas[b.id.slice(0,-1)+"0"]).map(b=>{const p=st[b.k]||0,ok=p>=b.n,al=bas[b.id];return`<div class="r"><span style="flex:1;text-align:left">${b.ad} (${n$(Math.min(p,b.n))}/${n$(b.n)})<br><small>${rw(b.r)}</small></span><button data-kg="bs_${b.id}" ${!ok||al?"disabled":""}>${al?"✔":"Al"}</button></div>`}).join("")}</div>`;
 }
@@ -631,7 +631,7 @@ async function terfi(f){
 const TN={sal:"⚔️ Saldırı",sav:"🛡️ Savunma",eko:"📈 Üretim"},tcost=l=>[3000,1200,1200].map(x=>x*(l+1)),BAG=[1000,500,500];
 const IMG={hiz:["3 ⏩ hızlandırma",100],elmas:["💎 20",150],kay:["💵3000 🔫1200 🍞1200",80]};
 function ittifakKutu(k,d){
-  const tek=d.tek||{},ks=d.kasa||{},lider=d.lider===uid,tot=Object.values(tek).reduce((a,b)=>a+b,0),hz=!o.gun.al.hed;o.itb=tek;
+  const tek=d.tek||{},ks=d.kasa||{},lider=d.lider===uid,tot=Object.values(tek).reduce((a,b)=>a+b,0),hz=!o.gun.al.hed;o.itb=tek;o.ikale=d.kale||null;
   k.insertAdjacentHTML("beforeend",`<div class="c"><b>🏛️ İttifak Kasası & Teknoloji</b><div class="a">Kasa: 💵${n$(ks.para||0)} 🔫${n$(ks.silah||0)} 🍞${n$(ks.yiyecek||0)} • Katkı puanın: ${n$(o.ip||0)}</div>
   <button data-it="bagis">Bağış yap (💵${BAG[0]} 🔫${BAG[1]} 🍞${BAG[2]}) → +20 puan</button>
   ${Object.keys(TN).map(t=>{const l=tek[t]||0,c=tcost(l);return`<div class="r"><span style="flex:1;text-align:left">${TN[t]} Sv ${l}/10 • üyelere +%${l}<br><small>${l>=10?"Maksimum":"Bedel: "+KA.map((x,i)=>IK[x]+n$(c[i])).join(" ")}</small></span><button data-it="up_${t}" ${!lider||l>=10||KA.some((x,i)=>(ks[x]||0)<c[i])?"disabled":""}>Geliştir</button></div>`}).join("")}
@@ -652,6 +652,39 @@ async function ittIs(t,d){
   }catch(e){return bilgi("İşlem başarısız: "+e.message)}
   ciz();await kaydet();ittifakCiz();
 }
+// ---------- İTTİFAK TOPRAĞI (Kale) ----------
+let ALL=[];
+const terrSahip=(x,y)=>{const a=ALL.find(a=>a.kale&&Math.abs(a.kale.x-x)+Math.abs(a.kale.y-y)<=a.kale.lv);return a?(a.id===o.ittifak?"ben":"yabanci"):null};
+const terr=(x,y)=>{const t=terrSahip(x,y);return t?"box-shadow:inset 0 0 0 2px "+(t==="ben"?"#4caf50":"#b06cff"):""};
+const kaleIk=(x,y)=>ALL.some(a=>a.kale&&a.kale.x==x&&a.kale.y==y)?"🏰":"";
+function kaleKutu(k,d){
+  const kl=d.kale,lider=d.lider===uid,ks=d.kasa||{};let h='<div class="c"><b>🏰 İttifak Kalesi & Toprağı</b>';
+  if(!kl)h+=`<div class="a">Kale kurulunca çevresindeki kareler ittifakın toprağı olur: üyeler orada %50 fazla kaynak toplar, yabancılar toplayamaz. Bedel (kasadan): 💵5.000 🔫2.000 🍞2.000</div>`+(lider?`<div class="r"><input type="number" id="kX" placeholder="x (0-15)" min="0" max="15"><input type="number" id="kY" placeholder="y (0-15)" min="0" max="15"><button data-kl="kur">Kur</button></div>`:'<div class="a">Kaleyi lider kurar.</div>');
+  else{const c=[4000,1600,1600].map(v=>v*kl.lv);h+=`<div class="a">Kale (${kl.x},${kl.y}) • Sv ${kl.lv}/5 • toprak yarıçapı ${kl.lv} kare • haritada 🏰</div>`+(kl.lv<5?`<button data-kl="up" ${!lider||KA.some((x,i)=>(ks[x]||0)<c[i])?"disabled":""}>Kaleyi yükselt (${KA.map((x,i)=>IK[x]+n$(c[i])).join(" ")})</button>`:'<div class="a">Maksimum seviye.</div>')+(lider?(Date.now()-(kl.tas||0)>864e5?`<div class="r"><input type="number" id="kX" placeholder="yeni x" min="0" max="15"><input type="number" id="kY" placeholder="yeni y" min="0" max="15"><button data-kl="tasi">Taşı (💵2.000 🔫800 🍞800)</button></div>`:'<div class="a">Kale 24 saatte bir taşınabilir.</div>'):"")}
+  k.insertAdjacentHTML("beforeend",h+"</div>");k.querySelectorAll("[data-kl]").forEach(b=>b.onclick=()=>kaleIs(b.dataset.kl,d));
+}
+async function kaleIs(t,d){
+  const ks=d.kasa||{};
+  try{
+    if(d.lider!==uid)return;
+    if(t==="kur"||t==="tasi"){const C=t==="kur"?[5000,2000,2000]:[2000,800,800];if(t==="tasi"&&Date.now()-(d.kale.tas||0)<=864e5)return;const x=Math.floor(Number($("kX").value)),y=Math.floor(Number($("kY").value));
+      if(!(x>=0&&x<HB&&y>=0&&y<HB)||$("kX").value===""||$("kY").value==="")return bilgi("Geçerli bir konum gir (0-15).");
+      if(dugum(x,y)||cete(x,y))return bilgi("Bu karede kaynak noktası ya da çete var.");
+      if(KA.some((q,i)=>(ks[q]||0)<C[i]))return bilgi("Kasada yeterli kaynak yok.");
+      const al=(await getDocs(collection(db,"ittifaklar"))).docs.map(z=>({id:z.id,...z.data()})).filter(a=>a.kale&&a.id!==o.ittifak);
+      if(al.some(a=>Math.abs(a.kale.x-x)+Math.abs(a.kale.y-y)<=a.kale.lv+1))return bilgi("Başka bir ittifakın toprağına çok yakın.");
+      await updateDoc(ittR(o.ittifak),{kale:t==="kur"?{x,y,lv:1}:{x,y,lv:d.kale.lv,tas:Date.now()},"kasa.para":increment(-C[0]),"kasa.silah":increment(-C[1]),"kasa.yiyecek":increment(-C[2])});bilgi(t==="kur"?"🏰 Kale kuruldu!":"🏰 Kale taşındı!")}
+    else if(t==="up"){const l=d.kale.lv,c=[4000,1600,1600].map(v=>v*l);if(l>=5||KA.some((q,i)=>(ks[q]||0)<c[i]))return;
+      await updateDoc(ittR(o.ittifak),{"kale.lv":increment(1),"kasa.para":increment(-c[0]),"kasa.silah":increment(-c[1]),"kasa.yiyecek":increment(-c[2])});bilgi("🏰 Kale Sv "+(l+1)+" oldu!")}
+  }catch(e){return bilgi("İşlem başarısız: "+e.message)}
+  ittifakCiz();
+}
+// ---------- TOPRAK ÜRETİM BONUSU / GÜNLÜK ETKİNLİK ----------
+function kBonus(){const k=o.ikale;return o.ittifak&&k&&o.x!=null&&Math.abs(k.x-o.x)+Math.abs(k.y-o.y)<=k.lv?.05*k.lv:0}
+const ET=[{ad:"Savunma Pazarı",ik:"🛡️",b:"sav",v:.2,t:"Savunma"},{ad:"Üretim Günü",ik:"📈",b:"eko",v:.25,t:"Kaynak üretimi"},{ad:"Yağma Günü",ik:"💰",b:"yag",v:.15,t:"Yağma oranı"},{ad:"Saldırı Günü",ik:"⚔️",b:"sal",v:.15,t:"Saldırı"},{ad:"Üretim Günü",ik:"📈",b:"eko",v:.25,t:"Kaynak üretimi"},{ad:"Yağma Günü",ik:"💰",b:"yag",v:.15,t:"Yağma oranı"},{ad:"Savaş Günü",ik:"💥",b:"sal",v:.15,t:"Saldırı"}];
+const etkBugun=()=>ET[new Date(Date.now()+10800000).getUTCDay()];
+function etk(b){const e=etkBugun();return e.b===b?e.v:0}
+function etkHtml(){const e=etkBugun();return`<div class="c"><b>${e.ik} Bugünün Etkinliği: ${e.ad}</b><div class="a">${e.t} bonusu +%${Math.round(e.v*100)} (tüm oyunculara, gece yarısı değişir)</div></div>`}
 async function pazarCiz(){
   const k=$("t6");k.innerHTML="Yükleniyor...";
   try{
@@ -718,7 +751,7 @@ async function bossIs(t,d){
   ittifakCiz();
 }
 const KM={kara:{ad:"Kara Murat",ik:"🥷",b:"sal",t:"Saldırı"},cemil:{ad:"Demir Kasa Cemil",ik:"🛡️",b:"sav",t:"Savunma"},selim:{ad:"Muhasebeci Selim",ik:"🧮",b:"eko",t:"Üretim"},hasan:{ad:"Kurt Hasan",ik:"🐺",b:"yag",t:"Yağma"}},KMM=[2000,500,500],
-kb=b=>{const k=o.kakt;return .01*(o.ittifak?(o.itb||{})[b]||0:0)+(k&&KM[k]&&KM[k].b===b?.03*(o.kmd[k]||1)+.004*((o.kl[k]||1)-1)+.015*(o.keq[k]||0):0)};
+kb=b=>{const k=o.kakt;return etk(b)+.01*(o.ittifak?(o.itb||{})[b]||0:0)+(k&&KM[k]&&KM[k].b===b?.03*(o.kmd[k]||1)+.004*((o.kl[k]||1)-1)+.015*(o.keq[k]||0):0)};
 const komHtml=()=>`<div class="c"><b>🕴️ Komutanlar</b><div class="a">Komutan çağır: rastgele biri gelir; aynısı tekrar çıkarsa seviyesi artar (en çok 10). Aktif komutan seviye başına +%3 bonus verir.</div>${Object.keys(KM).map(k=>{const l=o.kmd[k]||0,X=KM[k];return l?`<div class="r"><span style="flex:1;text-align:left">${X.ik} ${X.ad} Sv ${l}<br><small>${X.t} +%${3*l}</small></span><button data-k="${k}" ${o.kakt===k?"disabled":""}>${o.kakt===k?"✅ Aktif":"Seç"}</button></div>`:""}).join("")||'<div class="a">Henüz komutanın yok.</div>'}<div class="a">${maliyetHtml(KMM,o)}</div><button id="kmBtn" ${KA.some((x,i)=>o[x]<KMM[i])?"disabled":""}>Komutan çağır</button></div>`;
 async function komCagir(){uret();if(KA.some((x,i)=>o[x]<KMM[i]))return bilgi("Yeterli kaynak yok.");KA.forEach((x,i)=>o[x]-=KMM[i]);const ks=Object.keys(KM),k=ks[Math.floor(Math.random()*ks.length)];o.kmd[k]=Math.min(10,(o.kmd[k]||0)+1);if(!o.kakt)o.kakt=k;bilgi(`🕴️ ${KM[k].ad} geldi! Sv ${o.kmd[k]}`);ciz();await kaydet()}
 async function komSec(k){if(!o.kmd[k])return;o.kakt=k;bilgi(KM[k].ad+" aktif.");ciz();await kaydet()}
@@ -753,7 +786,7 @@ async function baslat(u){
   o.raporlar=o.raporlar||[];o.ittifak=o.ittifak||null;o.seferler=o.seferler||[];o.hastane=o.hastane||{};o.ar=Object.assign({sal:0,sav:0,eko:0},o.ar||{});o.gun=o.gun||{t:"",g:{},al:{}};o.odul=o.odul||[];o.npc=o.npc||{};o.kl=o.kl||{};o.kxp=o.kxp||{};o.keq=o.keq||{};o.rallyAl=o.rallyAl||[];o.arg=o.arg||null;o.esya=Object.assign({hiz:0},o.esya||{});o.seri=o.seri||0;o.kmd=o.kmd||{};o.kakt=o.kakt||null;o.bossAl=o.bossAl||[];o.bossSon=o.bossSon||0;if(o.x==null){o.x=Math.floor(Math.random()*HB);o.y=Math.floor(Math.random()*HB)}
   const m=uret();if(m.length)bilgi("✅ "+m.join(" "));
   $("kullanici").textContent=o.kullaniciAdi||u.email.split("@")[0];
-  kartlar();ciz();if(o.ittifak)getDoc(ittR(o.ittifak)).then(x=>{o.itb=(x.data()||{}).tek||{}}).catch(()=>{});await kaydet();
+  kartlar();ciz();if(o.ittifak)getDoc(ittR(o.ittifak)).then(x=>{const q=x.data()||{};o.itb=q.tek||{};o.ikale=q.kale||null}).catch(()=>{});await kaydet();
   tick=setInterval(()=>{const mm=uret();if(mm.length){bilgi("✅ "+mm.join(" "));kaydet()}seferIsle();ciz()},1000);
   sav=setInterval(kaydet,30000);
   unsub=onSnapshot(ref,sn=>{const dd=sn.data()||{};if(!o)return;if(dd.gelen&&dd.gelen.length)uygula(dd.gelen);if(dd.yardim&&dd.yardim.length)yardimUygula(dd.yardim);if(dd.gelir&&dd.gelir.length)gelirUygula(dd.gelir)});
