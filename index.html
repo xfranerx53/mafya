@@ -7,17 +7,68 @@
   <style>
     body { background:#111; color:#fff; font-family:sans-serif; text-align:center; margin:0; padding:20px; }
     h1 { color:#e0b04a; }
+    input { padding:10px; width:80%; max-width:300px; border-radius:6px; border:0; }
+    button { padding:10px 18px; border-radius:6px; border:0; background:#e0b04a; font-weight:bold; }
   </style>
 </head>
 <body>
   <div id="app">
     <h1>Mafya Şehri</h1>
-    <p>Oyun yükleniyor...</p>
+    <div id="auth">
+      <input id="email" type="email" placeholder="E-posta"><br><br>
+      <input id="sifre" type="password" placeholder="Şifre (en az 6 karakter)"><br><br>
+      <button id="girisBtn">Giriş Yap</button>
+      <button id="kayitBtn">Kayıt Ol</button>
+      <p id="mesaj"></p>
+    </div>
+    <div id="oyun" style="display:none">
+      <p>Hoş geldin, <span id="kullanici"></span></p>
+      <button id="cikisBtn">Çıkış</button>
+    </div>
   </div>
 
   <script type="module">
-    console.log("oyun başladı");
-    // Firebase ve oyun kodu buraya gelecek
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc }
+      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCKOWtGDm2-RwFOGT2UqaHUUYkB_zvxZI0",
+      authDomain: "mafya-a6889.firebaseapp.com",
+      projectId: "mafya-a6889",
+      storageBucket: "mafya-a6889.firebasestorage.app",
+      messagingSenderId: "717053621251",
+      appId: "1:717053621251:web:2f2d5c9f80685f4f020a36"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const $ = id => document.getElementById(id);
+
+    $("kayitBtn").onclick = async () => {
+      try {
+        const k = await createUserWithEmailAndPassword(auth, $("email").value, $("sifre").value);
+        await setDoc(doc(db, "oyuncular", k.user.uid), {
+          email: k.user.email, para: 1000, silah: 500, yiyecek: 500, olusturma: Date.now()
+        });
+      } catch (e) { $("mesaj").textContent = e.message; }
+    };
+
+    $("girisBtn").onclick = async () => {
+      try { await signInWithEmailAndPassword(auth, $("email").value, $("sifre").value); }
+      catch (e) { $("mesaj").textContent = e.message; }
+    };
+
+    $("cikisBtn").onclick = () => signOut(auth);
+
+    onAuthStateChanged(auth, u => {
+      $("auth").style.display = u ? "none" : "block";
+      $("oyun").style.display = u ? "block" : "none";
+      if (u) $("kullanici").textContent = u.email;
+    });
   </script>
 </body>
 </html>
