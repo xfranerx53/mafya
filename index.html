@@ -134,7 +134,7 @@ function uret(){
 async function kaydet(){
   if(!uid||!o)return;uret();
   const g=gucler(o.askerler);o.guc=g[0]+g[1];
-  try{await updateDoc(doc(db,"oyuncular",uid),{para:o.para,silah:o.silah,yiyecek:o.yiyecek,binalar:o.binalar,insaat:o.insaat,askerler:o.askerler,egitim:o.egitim,raporlar:o.raporlar,top:o.top||null,npc:o.npc||{},ittifak:o.ittifak,seferler:o.seferler,yardimIste:!!(o.insaat||o.egitim),guc:o.guc,hastane:o.hastane,ar:o.ar,gun:o.gun,odul:o.odul,arg:o.arg,esya:o.esya,seri:o.seri,kmd:o.kmd,bossAl:o.bossAl,bossSon:o.bossSon,x:o.x,y:o.y,kakt:o.kakt,kb:{sav:kb("sav")},sonGuncelleme:o.sonGuncelleme})}catch(e){console.error(e)}
+  try{await updateDoc(doc(db,"oyuncular",uid),{para:o.para,silah:o.silah,yiyecek:o.yiyecek,binalar:o.binalar,insaat:o.insaat,askerler:o.askerler,egitim:o.egitim,raporlar:o.raporlar,top:o.top||null,npc:o.npc||{},kl:o.kl||{},kxp:o.kxp||{},keq:o.keq||{},rallyAl:o.rallyAl||[],ittifak:o.ittifak,seferler:o.seferler,yardimIste:!!(o.insaat||o.egitim),guc:o.guc,hastane:o.hastane,ar:o.ar,gun:o.gun,odul:o.odul,arg:o.arg,esya:o.esya,seri:o.seri,kmd:o.kmd,bossAl:o.bossAl,bossSon:o.bossSon,x:o.x,y:o.y,kakt:o.kakt,kb:{sav:kb("sav")},sonGuncelleme:o.sonGuncelleme})}catch(e){console.error(e)}
 }
 const rapor=m=>{o.raporlar.unshift(m);o.raporlar=o.raporlar.slice(0,10)};
 
@@ -229,7 +229,7 @@ async function uygula(g){
 // ---------- ARAYÜZ ----------
 function kartlar(){
   $("t1").innerHTML='<div id="sehir"></div><div id="gk"></div>'+Object.keys(B).map(b=>`<div class="c"><div class="u"><span>${B[b].ik}</span><b>${B[b].ad}</b><span class="sv" id="s_${b}"></span></div><div class="a" id="a_${b}"></div><div class="a" id="m_${b}"></div><div class="d" id="d_${b}"></div><div class="cb" id="c_${b}" style="display:none"><div></div></div><button id="b_${b}">Yükselt</button></div>`).join("");
-  Object.keys(B).forEach(b=>$("b_"+b).onclick=()=>yukselt(b));$("t1").onclick=e=>{const g=e.target.dataset.g;if(g)gorevAl(g);const sb=e.target.closest("[data-sb]");if(sb)$("s_"+sb.dataset.sb).closest(".c").scrollIntoView({behavior:"smooth"})};$("hs").onclick=e=>{if(e.target.id==="hsBtn")tedavi();else if(e.target.dataset.a)arGel(e.target.dataset.a);else if(e.target.dataset.h)hiz(e.target.dataset.h);else if(e.target.id==="kmBtn")komCagir();else if(e.target.dataset.k)komSec(e.target.dataset.k)};
+  Object.keys(B).forEach(b=>$("b_"+b).onclick=()=>yukselt(b));$("t1").onclick=e=>{const g=e.target.dataset.g;if(g)gorevAl(g);const sb=e.target.closest("[data-sb]");if(sb)$("s_"+sb.dataset.sb).closest(".c").scrollIntoView({behavior:"smooth"})};$("hs").onclick=e=>{const kg=e.target.dataset.kg;if(kg){komGel(kg);return}if(e.target.id==="hsBtn")tedavi();else if(e.target.dataset.a)arGel(e.target.dataset.a);else if(e.target.dataset.h)hiz(e.target.dataset.h);else if(e.target.id==="kmBtn")komCagir();else if(e.target.dataset.k)komSec(e.target.dataset.k)};
   $("askerler").innerHTML=Object.keys(AS).map(t=>`<div class="c"><div class="u"><span>${AS[t].ik}</span><b>${AS[t].ad}</b><span class="sv" id="e_${t}"></span></div><div class="a">⚔️ ${AS[t].s} &nbsp; 🛡️ ${AS[t].v} &nbsp; • Karşısında güçlü: ${AS[CT[t]].ik} ${AS[CT[t]].ad}</div><div class="a" id="em_${t}"></div><div class="d" id="ed_${t}"></div><div class="r"><input type="number" id="n_${t}" value="1" min="1" inputmode="numeric"><button id="mx_${t}">Maks</button><button id="eb_${t}">Eğit</button></div></div>`).join("");
   Object.keys(AS).forEach(t=>{$("eb_"+t).onclick=()=>egit(t);$("mx_"+t).onclick=()=>$("n_"+t).value=Math.max(1,maksAdet(t))});
 }
@@ -272,7 +272,7 @@ async function ittifakCiz(){
       k.innerHTML=`<div class="c"><div class="u"><span>🤝</span><b>${esc(d.ad)}</b><span class="sv">${Object.keys(u).length} üye</span></div><div class="a">${Object.keys(u).map(i=>`<div>${i===d.lider?"👑":"🕴️"} ${esc(u[i])}${i!==uid&&yi[i]?` <button class="yb" data-y="${i}">🙋 Yardım et</button>`:""}</div>`).join("")}</div><div class="a">Müttefiklerine saldıramazsın.</div><button id="ayrBtn">Ayrıl</button></div>`;
       $("ayrBtn").onclick=ittifakAyril;
       k.querySelectorAll("[data-y]").forEach(b=>b.onclick=()=>{b.disabled=true;yardimEt(b.dataset.y)});
-      await savasKutu(k,d);await odulKutu(k,d);bossKutu(k,d);
+      await savasKutu(k,d);await odulKutu(k,d);bossKutu(k,d);rallyKutu(k,d);
       k.insertAdjacentHTML("beforeend",'<div class="c"><b>💬 Sohbet</b><div class="r"><input type="text" id="sohM" placeholder="Mesaj yaz..." maxlength="200"><button id="sohBtn">Gönder</button></div><div id="sohbet" style="max-height:260px;overflow:auto"></div></div>');
       $("sohBtn").onclick=sohbetGonder;sohbetBaslat(o.ittifak);
     }else{
@@ -376,7 +376,7 @@ function gorevCiz(){
 async function gorevAl(k){gunK();const[h,,r]=GR[k];if(o.gun.al[k]||(o.gun.g[k]||0)<h)return;o.gun.al[k]=1;KA.forEach((x,i)=>o[x]+=r[i]);o.esya.hiz++;bilgi("🎁 Görev ödülü alındı! +1 ⏩");ciz();await kaydet()}
 function hsCiz(){
   const hs=Object.keys(AS).filter(t=>o.hastane[t]>0);
-  $("hs").innerHTML=hizHtml()+komHtml()+'<div class="c"><b>🏥 Hastane</b><div class="a">'+(hs.length?hs.map(t=>AS[t].ik+" "+n$(o.hastane[t])).join(" &nbsp; "):"Yaralı yok")+'</div><div class="a">Savaşta kaybedilen askerlerin yarısı yaralanır; eğitim maliyetinin yarısına tedavi edilir.</div><button id="hsBtn" '+(hs.length?"":"disabled")+'>Tedavi et</button></div><div class="c"><b>🔬 Araştırma</b>'+Object.keys(AR).map(a=>{const l=o.ar[a];return`<div class="r"><span style="flex:1;text-align:left">${AR[a]} Sv ${l}/10 (+%${5*l})<br><small>${l>=10?"Maksimum":maliyetHtml(arM(l),o)+" &nbsp; ⏱ "+sureYaz(arS(l))}${o.arg&&o.arg.a===a?"<br>🔬 Araştırılıyor: "+sureYaz((o.arg.bitis-Date.now())/1000):""}</small></span><button data-a="${a}" ${l>=10||o.arg?"disabled":""}>Geliştir</button></div>`}).join("")+"</div>";
+  $("hs").innerHTML=hizHtml()+komHtml()+komGelHtml()+'<div class="c"><b>🏥 Hastane</b><div class="a">'+(hs.length?hs.map(t=>AS[t].ik+" "+n$(o.hastane[t])).join(" &nbsp; "):"Yaralı yok")+'</div><div class="a">Savaşta kaybedilen askerlerin yarısı yaralanır; eğitim maliyetinin yarısına tedavi edilir.</div><button id="hsBtn" '+(hs.length?"":"disabled")+'>Tedavi et</button></div><div class="c"><b>🔬 Araştırma</b>'+Object.keys(AR).map(a=>{const l=o.ar[a];return`<div class="r"><span style="flex:1;text-align:left">${AR[a]} Sv ${l}/10 (+%${5*l})<br><small>${l>=10?"Maksimum":maliyetHtml(arM(l),o)+" &nbsp; ⏱ "+sureYaz(arS(l))}${o.arg&&o.arg.a===a?"<br>🔬 Araştırılıyor: "+sureYaz((o.arg.bitis-Date.now())/1000):""}</small></span><button data-a="${a}" ${l>=10||o.arg?"disabled":""}>Geliştir</button></div>`}).join("")+"</div>";
 }
 const HB=16,mesafe=v=>v.x==null?0:(Math.abs(v.x-o.x)+Math.abs(v.y-o.y))*3;let hDoc={};
 async function haritaCiz(){
@@ -443,7 +443,52 @@ async function ceteSaldir(x,y){
   if(kazan){KA.forEach((x2,i)=>o[x2]+=[900,400,400][i]*c.lv);if(c.lv>=3)o.esya.hiz+=c.lv-2;o.npc[key]=Date.now()+18e5;
     m=`🕴️ Sv${c.lv} çeteyi yendin! Ödül: ${KA.map((x2,i)=>IK[x2]+n$([900,400,400][i]*c.lv)).join(" ")}${c.lv>=3?" ⏩"+(c.lv-2):""} • Kaybın: %${Math.round(k*100)}`}
   else m=`💀 Sv${c.lv} çeteye yenildin. Askerlerinin %${Math.round(k*100)}'ini kaybettin.`;
-  rapor(m);bilgi(m);ciz();await kaydet();haritaCiz();
+  if(kazan)kxpVer(60);rapor(m);bilgi(m);ciz();await kaydet();haritaCiz();
+}
+// ---------- KOMUTAN GELİŞİMİ (XP, seviye, ekipman) ----------
+function kxpVer(n){const k=o.kakt;if(!k||!o.kmd[k])return;o.kxp[k]=(o.kxp[k]||0)+n;let l=o.kl[k]||1;while(l<30&&o.kxp[k]>=100*l){o.kxp[k]-=100*l;l++}o.kl[k]=l}
+function komGelHtml(){
+  const k=o.kakt;if(!k||!KM[k]||!o.kmd[k])return"";const l=o.kl[k]||1,e=o.keq[k]||0,xp=o.kxp[k]||0;
+  return`<div class="c"><b>${KM[k].ik} ${KM[k].ad} gelişimi</b><div class="a">⭐ ${o.kmd[k]} yıldız • Sv ${l}/30 • XP ${xp}/${100*l} • 🎽 Ekipman ${e}/10<br>${KM[k].t} bonusu: +%${((.03*o.kmd[k]+.004*(l-1)+.015*e)*100).toFixed(1)}</div><div class="a">Yıldız: aynı komutan tekrar çıkınca artar. XP: çete ve rally zaferlerinden ya da eğitimden gelir.</div>
+  <div class="r"><button data-kg="xp" ${l>=30?"disabled":""}>Eğit +150 XP (${KA.map((x,i)=>IK[x]+[300,100,100][i]).join(" ")})</button></div>
+  <div class="r"><button data-kg="eq" ${e>=10?"disabled":""}>Ekipman yükselt (${KA.map((x,i)=>IK[x]+n$([600,300,300][i]*(e+1))).join(" ")})</button></div></div>`;
+}
+async function komGel(t){
+  uret();const k=o.kakt;if(!k||!o.kmd[k])return;const c=t==="xp"?[300,100,100]:[600,300,300].map(x=>x*((o.keq[k]||0)+1));
+  if(t==="eq"&&(o.keq[k]||0)>=10)return;if(KA.some((x,i)=>o[x]<c[i]))return bilgi("Yeterli kaynak yok.");
+  KA.forEach((x,i)=>o[x]-=c[i]);if(t==="xp")kxpVer(150);else o.keq[k]=(o.keq[k]||0)+1;
+  bilgi(t==="xp"?"🎓 Komutan eğitildi.":"🎽 Ekipman yükseltildi.");ciz();await kaydet();
+}
+// ---------- İTTİFAK RALLY (toplu çete saldırısı) ----------
+function rallyKutu(k,d){
+  const r=d.rally,now=Date.now(),R_=r&&!r.sonuc&&now<r.bitis,kat=r?(r.kat||{}):{};let h='<div class="c"><b>📢 İttifak Rally</b>';
+  const D=r?1600*r.lv*r.lv:0,top=Object.values(kat).reduce((a,x)=>a+gucler(x.a)[0],0);
+  if(!r||r.sonuc&&now-r.bitis>36e5||!R_&&!r.sonuc&&now-r.bitis>6e5&&!kat[uid])h+=`<div class="a">Üyeler askerlerini birleştirip çeteye saldırır. 5 dk katılım süresi. Ödül gücüne göre paylaşılır.</div><div class="r"><select id="ryLv">${[1,2,3,4,5].map(i=>`<option value="${i}">Sv${i} çete (🛡️ ${n$(1600*i*i)})</option>`).join("")}</select><button data-ry="yeni">Başlat</button></div>`;
+  else if(R_)h+=`<div class="a">${esc(r.bas)} rally başlattı: Sv${r.lv} çete • 🛡️ ${n$(D)}<br>Katılan: ${Object.keys(kat).length} • ⚔️ ${n$(top)} • Kalan ${sureYaz((r.bitis-now)/1000)}</div><button data-ry="katil" ${kat[uid]?"disabled":""}>${kat[uid]?"Katıldın":"Tüm askerlerle katıl"}</button>`;
+  else if(!r.sonuc)h+=`<div class="a">Katılım bitti (⚔️ ${n$(top)} / 🛡️ ${n$(D)}).</div><button data-ry="coz">Savaşı başlat</button>`;
+  else{h+=`<div class="a">${r.sonuc.kazandi?"🏆 Rally kazanıldı!":"💀 Rally kaybedildi."} Kayıp %${Math.round(r.sonuc.k*100)}</div>`;
+    if(kat[uid]&&!o.rallyAl.includes(r.id))h+='<button data-ry="al">Askerleri ve ödülü al</button>'}
+  k.insertAdjacentHTML("beforeend",h+"</div>");k.querySelectorAll("[data-ry]").forEach(x=>x.onclick=()=>rallyIs(x.dataset.ry,r));
+}
+async function rallyIs(t,r){
+  uret();const now=Date.now();
+  try{
+    if(t==="yeni"){const lv=Number($("ryLv").value)||1;await updateDoc(ittR(o.ittifak),{rally:{id:now,lv,baslatan:uid,bas:o.kullaniciAdi,bitis:now+3e5,kat:{},sonuc:null}});bilgi("📢 Rally başlatıldı!")}
+    else if(t==="katil"){
+      const f=(await getDoc(ittR(o.ittifak))).data().rally;if(!f||f.sonuc||now>=f.bitis)return bilgi("Rally kapandı.");
+      const a={};let n=0;for(const x in AS){a[x]=o.askerler[x]||0;n+=a[x]}if(!n)return bilgi("Katılmak için askerin olmalı.");
+      await updateDoc(ittR(o.ittifak),{["rally.kat."+uid]:{ad:o.kullaniciAdi,a}});for(const x in a)o.askerler[x]-=a[x];bilgi("📢 Askerlerin rally'ye katıldı.");ciz();await kaydet()}
+    else if(t==="coz"){
+      const f=(await getDoc(ittR(o.ittifak))).data().rally;if(!f||f.sonuc||now<f.bitis)return;
+      const A=Object.values(f.kat||{}).reduce((s2,x)=>s2+gucler(x.a)[0],0),D=1600*f.lv*f.lv,kz=A>D,k=kz?Math.min(.4,.25*D/A):.4;
+      await updateDoc(ittR(o.ittifak),{"rally.sonuc":{kazandi:kz,k,A}});bilgi(kz?"🏆 Rally kazanıldı!":"💀 Rally kaybedildi.")}
+    else if(t==="al"){
+      if(o.rallyAl.includes(r.id)||!(r.kat||{})[uid])return;const m=r.kat[uid],A=r.sonuc.A||1,pay=gucler(m.a)[0]/A;
+      for(const x in m.a){const l=Math.ceil(m.a[x]*r.sonuc.k);o.askerler[x]=(o.askerler[x]||0)+m.a[x]-l;o.hastane[x]=(o.hastane[x]||0)+Math.floor(l/2)}
+      if(r.sonuc.kazandi){KA.forEach((x,i)=>o[x]+=Math.floor([3600,1600,1600][i]*r.lv*pay));kxpVer(80)}
+      o.rallyAl.push(r.id);o.rallyAl=o.rallyAl.slice(-20);bilgi(r.sonuc.kazandi?"🎁 Rally ödülü ve askerlerin geldi!":"Hayatta kalan askerlerin geri döndü.");ciz();await kaydet()}
+  }catch(e){bilgi("İşlem başarısız: "+e.message)}
+  ittifakCiz();
 }
 async function pazarCiz(){
   const k=$("t6");k.innerHTML="Yükleniyor...";
@@ -511,7 +556,7 @@ async function bossIs(t,d){
   ittifakCiz();
 }
 const KM={kara:{ad:"Kara Murat",ik:"🥷",b:"sal",t:"Saldırı"},cemil:{ad:"Demir Kasa Cemil",ik:"🛡️",b:"sav",t:"Savunma"},selim:{ad:"Muhasebeci Selim",ik:"🧮",b:"eko",t:"Üretim"},hasan:{ad:"Kurt Hasan",ik:"🐺",b:"yag",t:"Yağma"}},KMM=[2000,500,500],
-kb=b=>{const k=o.kakt;return k&&KM[k]&&KM[k].b===b?.03*(o.kmd[k]||1):0};
+kb=b=>{const k=o.kakt;return k&&KM[k]&&KM[k].b===b?.03*(o.kmd[k]||1)+.004*((o.kl[k]||1)-1)+.015*(o.keq[k]||0):0};
 const komHtml=()=>`<div class="c"><b>🕴️ Komutanlar</b><div class="a">Komutan çağır: rastgele biri gelir; aynısı tekrar çıkarsa seviyesi artar (en çok 10). Aktif komutan seviye başına +%3 bonus verir.</div>${Object.keys(KM).map(k=>{const l=o.kmd[k]||0,X=KM[k];return l?`<div class="r"><span style="flex:1;text-align:left">${X.ik} ${X.ad} Sv ${l}<br><small>${X.t} +%${3*l}</small></span><button data-k="${k}" ${o.kakt===k?"disabled":""}>${o.kakt===k?"✅ Aktif":"Seç"}</button></div>`:""}).join("")||'<div class="a">Henüz komutanın yok.</div>'}<div class="a">${maliyetHtml(KMM,o)}</div><button id="kmBtn" ${KA.some((x,i)=>o[x]<KMM[i])?"disabled":""}>Komutan çağır</button></div>`;
 async function komCagir(){uret();if(KA.some((x,i)=>o[x]<KMM[i]))return bilgi("Yeterli kaynak yok.");KA.forEach((x,i)=>o[x]-=KMM[i]);const ks=Object.keys(KM),k=ks[Math.floor(Math.random()*ks.length)];o.kmd[k]=Math.min(10,(o.kmd[k]||0)+1);if(!o.kakt)o.kakt=k;bilgi(`🕴️ ${KM[k].ad} geldi! Sv ${o.kmd[k]}`);ciz();await kaydet()}
 async function komSec(k){if(!o.kmd[k])return;o.kakt=k;bilgi(KM[k].ad+" aktif.");ciz();await kaydet()}
@@ -543,7 +588,7 @@ async function baslat(u){
   o.binalar=Object.assign({kumarhane:1,silahatolyesi:1,restoran:1,karargah:1,kisla:1,depo:1,duvar:1},o.binalar||{});
   o.askerler=Object.assign({serseri:0,tetikci:0,nisanci:0,muhafiz:0},o.askerler||{});
   if(o.insaat===undefined)o.insaat=null;if(o.egitim===undefined)o.egitim=null;
-  o.raporlar=o.raporlar||[];o.ittifak=o.ittifak||null;o.seferler=o.seferler||[];o.hastane=o.hastane||{};o.ar=Object.assign({sal:0,sav:0,eko:0},o.ar||{});o.gun=o.gun||{t:"",g:{},al:{}};o.odul=o.odul||[];o.npc=o.npc||{};o.arg=o.arg||null;o.esya=Object.assign({hiz:0},o.esya||{});o.seri=o.seri||0;o.kmd=o.kmd||{};o.kakt=o.kakt||null;o.bossAl=o.bossAl||[];o.bossSon=o.bossSon||0;if(o.x==null){o.x=Math.floor(Math.random()*HB);o.y=Math.floor(Math.random()*HB)}
+  o.raporlar=o.raporlar||[];o.ittifak=o.ittifak||null;o.seferler=o.seferler||[];o.hastane=o.hastane||{};o.ar=Object.assign({sal:0,sav:0,eko:0},o.ar||{});o.gun=o.gun||{t:"",g:{},al:{}};o.odul=o.odul||[];o.npc=o.npc||{};o.kl=o.kl||{};o.kxp=o.kxp||{};o.keq=o.keq||{};o.rallyAl=o.rallyAl||[];o.arg=o.arg||null;o.esya=Object.assign({hiz:0},o.esya||{});o.seri=o.seri||0;o.kmd=o.kmd||{};o.kakt=o.kakt||null;o.bossAl=o.bossAl||[];o.bossSon=o.bossSon||0;if(o.x==null){o.x=Math.floor(Math.random()*HB);o.y=Math.floor(Math.random()*HB)}
   const m=uret();if(m.length)bilgi("✅ "+m.join(" "));
   $("kullanici").textContent=o.kullaniciAdi||u.email.split("@")[0];
   kartlar();ciz();await kaydet();
