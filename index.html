@@ -617,9 +617,16 @@ const cete=(x,y)=>{if(dugum(x,y))return null;const h=(Math.imul(x+7,2654435761)^
 function cetePanel(k){
   const L=[];for(let y=0;y<HB;y++)for(let x=0;x<HB;x++){const c=cete(x,y);if(c&&!(hDoc[x+"_"+y]||[]).length)L.push(c)}
   L.sort((a,b)=>mes(a)-mes(b));const now=Date.now(),A=gucler(o.askerler)[0]*(1+arB(o.ar.sal)+kb("sal"));
-  k.insertAdjacentHTML("beforeend",`<div class="c"><b>🕴️ Çeteler</b><div class="a">Haritadaki mor kareler (Sv1-30; şu an Sv1-${ceteMax()} çıkıyor, Kışla yükseldikçe yeni seviyeler açılır). Evdeki tüm askerlerinle saldırırsın. Her saldırı ⚡${ENCETE} enerji harcar (şu an ⚡${o.en.v}). Her saldırıdan sonra 1 dk bekleme olur. Kazanırsan ödül alırsın ve yerine yeni bir çete gelir; kaybedersen ödül yok. Senin saldırın: ⚔️ ${n$(A)}</div>`+
+  k.insertAdjacentHTML("beforeend",`<div class="c"><b>🕴️ Çeteler</b><div class="a">Haritadaki mor kareler (Sv1-30; şu an Sv1-${ceteMax()} çıkıyor, Kışla yükseldikçe yeni seviyeler açılır). Evdeki tüm askerlerinle saldırırsın. Her saldırı ⚡${ENCETE} enerji harcar (şu an ⚡${o.en.v}). Her saldırıdan sonra 1 dk bekleme olur. Kazanırsan ödül alırsın ve yerine yeni bir çete gelir; kaybedersen ödül yok. Senin saldırın: ⚔️ ${n$(A)}</div><button data-cy="1" style="width:100%;margin:6px 0">🔄 Çeteleri yenile</button>`+
     L.slice(0,6).map(c=>{const D=ceteD(c.lv),cd=(o.npc[c.x+"_"+c.y]||0)-now;return`<div class="r"><span style="flex:1;text-align:left">🕴️ Sv${c.lv} (${c.x},${c.y}) • 🛡️ ${n$(D)}<br><small>${KA.map((x,i)=>IK[x]+n$(ceteR(c.lv)[i])).join(" ")}<br>+ ⏩ hızlandırma ve 📦 kaynak paketi (1-2 adet)</small></span><button data-c2="${c.x}_${c.y}" data-cd="${(o.npc[c.x+"_"+c.y]||0)}" ${cd>0?"disabled":""}>${cd>0?sureYaz(cd/1000):"Saldır ⚡"+ENCETE}</button></div>`}).join("")+"</div>");
   k.querySelectorAll("[data-c2]").forEach(b=>b.onclick=()=>{const[x,y]=b.dataset.c2.split("_").map(Number);ceteSaldir(x,y)});
+  k.querySelectorAll("[data-cy]").forEach(b=>b.onclick=()=>ceteYenile());
+}
+// Haritadaki tüm çeteleri yeniden oluşturur (seviyeler yeniden belirlenir, bekleme süreleri sıfırlanır)
+async function ceteYenile(){
+  uret();let n=0;o.cg=o.cg||{};o.npc=o.npc||{};
+  for(let y=0;y<HB;y++)for(let x=0;x<HB;x++){const c=cete(x,y);if(c){const key=x+"_"+y;o.cg[key]=(o.cg[key]||0)+1;delete o.npc[key];n++}}
+  bilgi("🔄 "+n+" çete yenilendi.");ciz();await kaydet();haritaCiz();
 }
 async function ceteSaldir(x,y){
   uret();const c=cete(x,y);if(!c)return;const key=x+"_"+y;if((o.npc[key]||0)>Date.now())return bilgi("Bu çete toparlanıyor.");
@@ -958,7 +965,4 @@ async function baslat(u){
 async function durdur(){clearInterval(tick);clearInterval(sav);if(unsub)unsub();if(sohbetUnsub)sohbetUnsub();await kaydet();uid=null;o=null}
 document.addEventListener("visibilitychange",()=>{if(document.hidden)kaydet()});
 onAuthStateChanged(auth,async u=>{
-  if(u){$("auth").style.display="none";$("oyun").style.display="block";await baslat(u)}
-  else{await durdur();$("auth").style.display="block";$("oyun").style.display="none"}
-});
-</script></body></html>
+  if(u){
