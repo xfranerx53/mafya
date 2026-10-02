@@ -962,4 +962,18 @@ async function baslat(u){
   o.binalar=Object.assign({kumarhane:1,silahatolyesi:1,restoran:1,karargah:1,kisla:1,depo:1,duvar:1,hastane:1},o.binalar||{});
   o.askerler=Object.assign({serseri:0,tetikci:0,nisanci:0,muhafiz:0,elitt:0,komando:0},o.askerler||{});
   if(o.insaat===undefined)o.insaat=null;if(o.insaat2===undefined)o.insaat2=null;if(o.egitim===undefined)o.egitim=null;
-  o.raporlar=(o.raporlar||[]).map(r=>typeof r==="string"?{t:0,tip:"bilgi",s:"n",b:"",d:[],m:r}:r);o.is=o.is||{};o.rSon=o.
+  o.raporlar=(o.raporlar||[]).map(r=>typeof r==="string"?{t:0,tip:"bilgi",s:"n",b:"",d:[],m:r}:r);o.is=o.is||{};o.rSon=o.rSon||0;o.ittifak=o.ittifak||null;o.seferler=o.seferler||[];o.hastane=o.hastane||{};o.ar=Object.assign({sal:0,sav:0,eko:0,enr:0},o.ar||{});o.gun=o.gun||{t:"",g:{},al:{}};o.odul=o.odul||[];o.npc=o.npc||{};o.kl=o.kl||{};o.kxp=o.kxp||{};o.keq=o.keq||{};o.rallyAl=o.rallyAl||[];o.arg=o.arg||null;o.esya=Object.assign({hiz:0,h1:0,h5:0,h15:0,h30:0,h60:0},o.esya||{});o.pk=o.pk||{};o.cg=o.cg||{};if(!o.en||typeof o.en.v!=="number")o.en={v:ENMAX,t:Date.now()};o.seri=o.seri||0;o.kmd=o.kmd||{};o.kakt=o.kakt||null;o.bossAl=o.bossAl||[];o.bossSon=o.bossSon||0;if(o.x==null){o.x=Math.floor(Math.random()*HB);o.y=Math.floor(Math.random()*HB)}
+  const m=uret();if(m.length)bilgi("✅ "+m.join(" "));
+  $("kullanici").textContent=o.kullaniciAdi||u.email.split("@")[0];
+  kartlar();ciz();if(o.ittifak)getDoc(ittR(o.ittifak)).then(x=>{const q=x.data()||{};o.itb=q.tek||{};o.ikale=q.kale||null}).catch(()=>{});await kaydet();
+  tick=setInterval(()=>{const mm=uret();if(mm.length){bilgi("✅ "+mm.join(" "));kaydet()}seferIsle();ciz()},1000);
+  sav=setInterval(kaydet,30000);
+  unsub=onSnapshot(ref,sn=>{const dd=sn.data()||{};if(!o)return;if(dd.gelen&&dd.gelen.length)uygula(dd.gelen);if(dd.yardim&&dd.yardim.length)yardimUygula(dd.yardim);if(dd.gelir&&dd.gelir.length)gelirUygula(dd.gelir)});
+}
+async function durdur(){clearInterval(tick);clearInterval(sav);if(unsub)unsub();if(sohbetUnsub)sohbetUnsub();await kaydet();uid=null;o=null}
+document.addEventListener("visibilitychange",()=>{if(document.hidden)kaydet()});
+onAuthStateChanged(auth,async u=>{
+  if(u){$("auth").style.display="none";$("oyun").style.display="block";await baslat(u)}
+  else{await durdur();$("auth").style.display="block";$("oyun").style.display="none"}
+});
+</script></body></html>
